@@ -1,0 +1,249 @@
+url_length,domain_length,num_digits,num_special_chars,num_subdomains,uses_https,domain_age_days,registrar,ssl_valid,ssl_issuer,label,url
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE2'),))",0,https://google.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE2'),))",0,https://youtube.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global CA G2'),))",0,https://amazon.com
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E7'),))",0,https://wikipedia.org
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Microsoft Corporation'),), (('commonName', 'Microsoft Azure RSA TLS Issuing CA 04'),))",0,https://microsoft.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Apple Inc.'),), (('commonName', 'Apple Public EV Server ECC CA 1 - G1'),))",0,https://apple.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E8'),))",0,https://openai.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'GB'),), (('stateOrProvinceName', 'Greater Manchester'),), (('localityName', 'Salford'),), (('organizationName', 'Sectigo Limited'),), (('commonName', 'Sectigo ECC Domain Validation Secure Server CA'),))",0,https://github.com
+25,17,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E7'),))",0,https://stackoverflow.com
+25,17,0,0,1,1,-1,unknown,0,none,0,https://bankofamerica.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert EV RSA CA G2'),))",0,https://chase.com
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Wells Fargo & Company'),), (('organizationalUnitName', 'Organization Validated TLS'),), (('commonName', 'Wells Fargo Public Trust Certification Authority 01 G2'),))",0,https://wellsfargo.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G3 TLS ECC SHA384 2020 CA1'),))",0,https://costco.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'BE'),), (('organizationName', 'GlobalSign nv-sa'),), (('commonName', 'GlobalSign Atlas R3 OV TLS CA 2025 Q3'),))",0,https://target.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G3 TLS ECC SHA384 2020 CA1'),))",0,https://bestbuy.com
+26,18,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G3 TLS ECC SHA384 2020 CA1'),))",0,https://steamcommunity.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('organizationalUnitName', 'www.digicert.com'),), (('commonName', 'DigiCert Secure Site ECC CA-1'),))",0,https://netflix.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'GB'),), (('stateOrProvinceName', 'Greater Manchester'),), (('localityName', 'Salford'),), (('organizationName', 'COMODO CA Limited'),), (('commonName', 'COMODO RSA Organization Validation Secure Server CA'),))",0,https://hulu.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://spotify.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('organizationalUnitName', 'www.digicert.com'),), (('commonName', 'Thawte TLS RSA CA G1'),))",0,https://nytimes.com
+15,7,0,0,1,1,-1,unknown,0,none,0,https://cnn.com
+15,7,0,0,1,1,-1,unknown,1,"((('countryName', 'BE'),), (('organizationName', 'GlobalSign nv-sa'),), (('commonName', 'GlobalSign RSA OV SSL CA 2018'),))",0,https://bbc.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://nintendo.com
+23,15,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://playstation.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Microsoft Corporation'),), (('commonName', 'Microsoft Azure RSA TLS Issuing CA 08'),))",0,https://xbox.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS RSA SHA256 2020 CA1'),))",0,https://dropbox.com
+24,16,0,0,2,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE2'),))",0,https://drive.google.com
+23,15,0,0,2,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE2'),))",0,https://docs.google.com
+15,7,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://zoom.us
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R13'),))",0,https://slack.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://paypal.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert EV RSA CA G2'),))",0,https://venmo.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://reddit.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'BE'),), (('organizationName', 'GlobalSign nv-sa'),), (('commonName', 'GlobalSign Atlas R3 DV TLS CA 2025 Q2'),))",0,https://twitch.tv
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://instagram.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://facebook.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E7'),))",0,https://twitter.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert SHA2 Secure Server CA'),))",0,https://linkedin.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS Hybrid ECC SHA384 2020 CA1'),))",0,https://adobe.com
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS RSA SHA256 2020 CA1'),))",0,https://salesforce.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS RSA SHA256 2020 CA1'),))",0,https://oracle.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://zoom.com
+18,10,0,0,1,1,-1,unknown,0,none,0,https://icloud.com
+15,7,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://att.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://verizon.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://t-mobile.com
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert EV RSA CA G2'),))",0,https://capitalone.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert EV RSA CA G2'),))",0,https://discover.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://usbank.com
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://homedepot.com
+17,9,0,0,1,1,-1,unknown,0,none,0,https://lowes.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E7'),))",0,https://wayfair.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://nike.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert EV RSA CA G2'),))",0,https://adidas.com
+23,15,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert EV RSA CA G2'),))",0,https://underarmour.com
+29,21,0,0,1,1,-1,unknown,0,none,0,https://githubusercontent.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'BE'),), (('organizationName', 'GlobalSign nv-sa'),), (('commonName', 'GlobalSign Atlas R3 DV TLS CA 2025 Q1'),))",0,https://python.org
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R12'),))",0,https://pytorch.org
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE2'),))",0,https://tensorflow.org
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M02'),))",0,https://huggingface.co
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://medium.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WR3'),))",0,https://mozilla.org
+18,10,0,0,1,1,-1,unknown,0,none,0,https://ubuntu.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R12'),))",0,https://debian.org
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E7'),))",0,https://archlinux.org
+18,10,0,0,1,1,-1,unknown,0,none,0,https://fedora.org
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://coursera.org
+15,7,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://edx.org
+23,15,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M01'),))",0,https://khanacademy.org
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://udemy.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://airbnb.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://booking.com
+23,15,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://tripadvisor.com
+17,9,0,0,1,1,-1,unknown,0,none,0,https://delta.com
+28,20,0,0,1,1,-1,unknown,0,none,0,https://americanairlines.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('organizationalUnitName', 'www.digicert.com'),), (('commonName', 'GeoTrust RSA CA 2018'),))",0,https://united.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R12'),))",0,https://jetblue.com
+21,13,0,0,1,1,-1,unknown,0,none,0,https://southwest.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://doordash.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS RSA SHA256 2020 CA1'),))",0,https://ubereats.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://lyft.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS RSA SHA256 2020 CA1'),))",0,https://uber.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS Hybrid ECC SHA384 2020 CA1'),))",0,https://stripe.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://coinbase.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://kraken.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('organizationalUnitName', 'www.digicert.com'),), (('commonName', 'GeoTrust TLS RSA CA G1'),))",0,https://binance.com
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M03'),))",0,https://robinhood.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'GB'),), (('stateOrProvinceName', 'Greater Manchester'),), (('localityName', 'Salford'),), (('organizationName', 'COMODO CA Limited'),), (('commonName', 'COMODO RSA Extended Validation Secure Server CA'),))",0,https://etrade.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://fidelity.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R12'),))",0,https://vanguard.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R12'),))",0,https://tesla.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://toyota.com
+15,7,0,0,1,1,-1,unknown,1,"((('countryName', 'BE'),), (('organizationName', 'GlobalSign nv-sa'),), (('commonName', 'GlobalSign RSA OV SSL CA 2018'),))",0,https://bmw.com
+25,17,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R12'),))",0,https://mercedes-benz.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://honda.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'BE'),), (('organizationName', 'GlobalSign nv-sa'),), (('commonName', 'GlobalSign RSA OV SSL CA 2018'),))",0,https://ford.com
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://chevrolet.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E8'),))",0,https://nasa.gov
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E8'),))",0,https://whitehouse.gov
+15,7,0,0,1,1,-1,unknown,1,"((('countryName', 'CA'),), (('organizationName', 'Entrust Limited'),), (('commonName', 'Entrust OV TLS Issuing RSA CA 2'),))",0,https://irs.gov
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://census.gov
+29,21,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://libraryofcongress.gov
+15,7,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://epa.gov
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://usda.gov
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R12'),))",0,https://noaa.gov
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert TLS Hybrid ECC SHA384 2020 CA1'),))",0,https://weather.com
+23,15,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://accuweather.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('organizationalUnitName', 'www.digicert.com'),), (('commonName', 'DigiCert SHA2 High Assurance Server CA'),))",0,https://yahoo.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Microsoft Corporation'),), (('commonName', 'Microsoft Azure RSA TLS Issuing CA 04'),))",0,https://bing.com
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://duckduckgo.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'GB'),), (('organizationName', 'Sectigo Limited'),), (('commonName', 'Sectigo Public Server Authentication CA OV R36'),))",0,https://roblox.com
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M01'),))",0,https://epicgames.com
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G3 TLS ECC SHA384 2020 CA1'),))",0,https://riotgames.com
+14,6,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert SHA2 Secure Server CA'),))",0,https://ea.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://bioware.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M03'),))",0,https://bethesda.net
+29,21,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'R13'),))",0,https://square-enix-games.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('organizationalUnitName', 'www.digicert.com'),), (('commonName', 'RapidSSL TLS RSA CA G1'),))",0,https://capcom.com
+26,18,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://bandainamcoent.com
+16,8,0,0,1,1,-1,unknown,1,"((('countryName', 'BE'),), (('organizationName', 'GlobalSign nv-sa'),), (('commonName', 'GlobalSign Atlas R3 DV TLS CA 2025 Q1'),))",0,https://pypi.org
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://shopify.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://canva.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://figma.com
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Google Trust Services'),), (('commonName', 'WE1'),))",0,https://notion.so
+17,9,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', ""Let's Encrypt""),), (('commonName', 'E7'),))",0,https://asana.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M04'),))",0,https://trello.com
+21,13,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://mcdonalds.com
+22,14,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'Amazon'),), (('commonName', 'Amazon RSA 2048 M03'),))",0,https://burgerking.com
+18,10,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('stateOrProvinceName', 'Arizona'),), (('localityName', 'Scottsdale'),), (('organizationName', 'GoDaddy.com, Inc.'),), (('organizationalUnitName', 'http://certs.godaddy.com/repository/'),), (('commonName', 'Go Daddy Secure Certificate Authority - G2'),))",0,https://wendys.com
+19,11,0,0,1,1,-1,unknown,1,"((('countryName', 'CA'),), (('organizationName', 'Entrust Limited'),), (('commonName', 'Entrust OV TLS Issuing RSA CA 2'),))",0,https://dominos.com
+20,12,0,0,1,1,-1,unknown,0,none,0,https://pizzahut.com
+20,12,0,0,1,1,-1,unknown,1,"((('countryName', 'US'),), (('organizationName', 'DigiCert Inc'),), (('commonName', 'DigiCert Global G2 TLS RSA SHA256 2020 CA1'),))",0,https://chipotle.com
+33,13,10,0,3,0,-1,unknown,0,none,1,http://185.244.25.91/login/secure
+33,12,9,0,3,0,-1,unknown,0,none,1,http://34.120.55.12/verify/update
+45,12,9,0,3,0,-1,unknown,0,none,1,http://197.44.12.88/paypal/login/authenticate
+46,12,9,0,3,0,-1,unknown,0,none,1,http://23.98.112.55/bankofamerica/secureupdate
+48,13,10,0,3,0,-1,unknown,0,none,1,http://102.19.88.233/amazon-checkout-auth/update
+40,33,0,0,3,0,-1,unknown,0,none,1,http://paypal.com.secure-login-check.net
+35,28,1,0,2,0,-1,unknown,0,none,1,http://secure.paypa1-auth-login.com
+57,50,0,0,3,0,-1,unknown,0,none,1,http://appleid-login-secureverify.com.update-session.info
+56,49,0,0,3,0,-1,unknown,0,none,1,http://login-update-amazonaccount.com.security-check.net
+48,41,0,0,2,0,-1,unknown,0,none,1,http://microsoft.support-login-verification.info
+47,40,0,0,3,0,-1,unknown,0,none,1,http://secure-chase-login.com.accountverify.net
+42,35,0,0,2,0,-1,unknown,0,none,1,http://wellsfargo.verify-session-login.com
+47,40,3,0,3,0,-1,unknown,0,none,1,http://signin-office365.com.security-update.net
+48,41,0,0,4,0,-1,unknown,0,none,1,http://secure-icloud.com.login.verify-update.org
+47,40,0,0,2,0,-1,unknown,0,none,1,http://drive-google-com.secure-access-login.net
+30,23,1,0,1,0,-1,unknown,0,none,1,http://goog1e-drive-access.com
+29,22,2,0,1,0,-1,unknown,0,none,1,http://g00gle-docs-secure.com
+40,33,0,0,1,0,-1,unknown,0,none,1,http://store-apple-com-login-billing.net
+32,25,1,0,1,0,-1,unknown,0,none,1,http://amaz0n-prime-security.com
+49,42,0,0,2,0,-1,unknown,0,none,1,http://netflix-account-verify.securestreaming.net
+54,47,0,0,2,0,-1,unknown,0,none,1,http://hulu-authentication-service.tv-update-check.com
+37,30,0,0,1,0,-1,unknown,0,none,1,http://steamcommunity-login-check.net
+42,35,0,0,2,0,-1,unknown,0,none,1,http://steampowered.secure-verification.co
+49,42,0,0,2,0,-1,unknown,0,none,1,http://discordapp.account-verification-secure.net
+40,33,0,0,2,0,-1,unknown,0,none,1,http://facebook.login-security-check.com
+39,32,0,0,1,0,-1,unknown,0,none,1,http://instagram-login-recovery-page.co
+41,34,0,0,1,0,-1,unknown,0,none,1,http://meta-account-helpdesk-security.net
+42,35,0,0,1,0,-1,unknown,0,none,1,http://twitter-login-support-helpdesk.info
+40,33,0,0,1,0,-1,unknown,0,none,1,http://tiktok-secure-recovery-update.net
+34,27,0,0,1,0,-1,unknown,0,none,1,http://linkedin-verify-profile.com
+46,39,3,0,2,0,-1,unknown,0,none,1,http://office365.recovery-session-validate.net
+35,28,0,0,1,0,-1,unknown,0,none,1,http://dropbox-fileshare-secure.com
+47,40,0,0,2,0,-1,unknown,0,none,1,http://drive-google.sharefile-secure-access.org
+42,35,0,0,2,0,-1,unknown,0,none,1,http://amazon.refund-processing-center.net
+51,44,0,0,3,0,-1,unknown,0,none,1,http://bankofarnerica.com.secure-session-update.net
+47,40,0,0,2,0,-1,unknown,0,none,1,http://verify-paypal.claim-your-refund-now.info
+43,36,0,0,2,0,-1,unknown,0,none,1,http://secure-chase.bank-update-session.com
+51,44,0,0,2,0,-1,unknown,0,none,1,http://secure-wellsfargo.banklogin-authenticate.net
+50,43,0,0,2,0,-1,unknown,0,none,1,http://credit-union.onlinebanking-secureverify.org
+40,33,0,0,2,0,-1,unknown,0,none,1,http://apple.support-center-recovery.com
+39,32,0,0,1,0,-1,unknown,0,none,1,http://icloud-account-locked-access.net
+39,32,0,0,2,0,-1,unknown,0,none,1,http://appleid.unusual-signin-alert.com
+46,39,0,0,2,0,-1,unknown,0,none,1,http://microsoftpasswordreset.secureportal.net
+38,31,0,0,1,0,-1,unknown,0,none,1,http://github-login-security-check.net
+39,32,0,0,2,0,-1,unknown,0,none,1,http://github.update-billing-prompt.com
+35,28,0,0,1,0,-1,unknown,0,none,1,http://epicgames-login-support.info
+36,29,0,0,2,0,-1,unknown,0,none,1,http://riotgames.secure-recovery.net
+36,29,0,0,1,0,-1,unknown,0,none,1,http://roblox-giftcard-claim-now.com
+37,30,4,0,1,0,-1,unknown,0,none,1,http://free-vbucks-generator-2025.net
+34,27,0,0,1,0,-1,unknown,0,none,1,http://steam-wallet-code-claim.net
+38,31,0,0,1,0,-1,unknown,0,none,1,http://bitcoins-giveaway-elonmusk.live
+33,26,4,0,1,0,-1,unknown,0,none,1,http://claim-eth-airdrop-2025.net
+43,36,0,0,2,0,-1,unknown,0,none,1,http://binance.verify-your-wallet-coins.net
+46,39,0,0,1,0,-1,unknown,0,none,1,http://coinbase-refund-verification-center.com
+38,31,0,0,1,0,-1,unknown,0,none,1,http://trustwallet-update-security.net
+41,34,0,0,1,0,-1,unknown,0,none,1,http://paypal-business-account-update.net
+43,36,0,0,1,0,-1,unknown,0,none,1,http://hrblock-tax-refund-center-verify.com
+42,35,0,0,1,0,-1,unknown,0,none,1,http://irs-refund-immediate-processing.net
+45,38,0,0,2,0,-1,unknown,0,none,1,http://federalrefund.support-verify-center.us
+46,39,0,0,1,0,-1,unknown,0,none,1,http://united-airlines-rebook-confirmation.net
+41,34,0,0,1,0,-1,unknown,0,none,1,http://delta-rebook-flight-helpcenter.org
+41,34,0,0,1,0,-1,unknown,0,none,1,http://american-airlines-ticket-claim.com
+40,33,0,0,1,0,-1,unknown,0,none,1,http://fakeupsdelivery-missedpackage.net
+44,37,0,0,1,0,-1,unknown,0,none,1,http://fedex-shipping-update-confirmation.co
+44,37,0,0,1,0,-1,unknown,0,none,1,http://usps-delivery-reschedule-confirm.info
+45,38,0,0,1,0,-1,unknown,0,none,1,http://paypal-login-resolve-issue-session.com
+42,35,1,0,2,0,-1,unknown,0,none,1,http://amaz0n.support-helpdesk-resolve.net
+47,40,0,0,1,0,-1,unknown,0,none,1,http://netflix-account-reactivation-service.net
+40,33,0,0,1,0,-1,unknown,0,none,1,http://spotify-premium-payment-error.com
+42,35,0,0,1,0,-1,unknown,0,none,1,http://uber-driver-payout-verification.net
+38,31,0,0,1,0,-1,unknown,0,none,1,http://lyft-driver-payment-review.info
+41,34,0,0,1,0,-1,unknown,0,none,1,http://facebook-meta-security-support.net
+43,36,0,0,2,0,-1,unknown,0,none,1,http://steamcommunity.offer-claim-promo.net
+49,42,0,0,1,0,-1,unknown,0,none,1,http://wellsfargo-authentication-errorsupport.com
+39,32,0,0,1,0,-1,unknown,0,none,1,http://login-google-notice-security.net
+41,34,0,0,1,0,-1,unknown,0,none,1,http://secure-gmail-recovery-checking.org
+50,43,0,0,2,0,-1,unknown,0,none,1,http://verify-my-google-account.support-center.net
+42,35,0,0,1,0,-1,unknown,0,none,1,http://googledrive-file-delete-warning.com
+47,40,0,0,1,0,-1,unknown,0,none,1,http://outlook-login-reset-password-support.com
+44,37,3,0,1,0,-1,unknown,0,none,1,http://microsoftoffice365-account-verify.net
+45,38,0,0,1,0,-1,unknown,0,none,1,http://youtube-premium-paymenterror-check.net
+40,33,0,0,1,0,-1,unknown,0,none,1,http://twitchstreamerpartner-program.net
+42,35,4,0,2,0,-1,unknown,0,none,1,http://amazon.free-giftcard-2025-event.com
+36,29,0,0,1,0,-1,unknown,0,none,1,http://tesla-winningvehicleclaim.com
+42,35,0,0,1,0,-1,unknown,0,none,1,http://bmw-lottery-winner-notification.org
+37,30,0,0,1,0,-1,unknown,0,none,1,http://mercedesrewardcenterverify.net
+40,33,0,0,1,0,-1,unknown,0,none,1,http://secure-chevrolet-updateportal.com
+45,38,0,0,1,0,-1,unknown,0,none,1,http://paypal-login-device-alert-security.com
+38,31,0,0,1,0,-1,unknown,0,none,1,http://cashapp-verification-center.net
+36,29,0,0,1,0,-1,unknown,0,none,1,http://venmo-secure-authenticate.net
+41,34,0,0,1,0,-1,unknown,0,none,1,http://stripe-business-review-support.org
+38,31,0,0,1,0,-1,unknown,0,none,1,http://nintendo-gift-reward-center.com
+38,31,0,0,2,0,-1,unknown,0,none,1,http://epicgames.free-redeem-codes.net
+35,28,0,0,2,0,-1,unknown,0,none,1,http://riot.free-rp-claimcenter.org
+47,40,0,0,1,0,-1,unknown,0,none,1,http://bank-login-session-expired-verifynow.com
+43,36,0,0,1,0,-1,unknown,0,none,1,http://secure-bank-update-instantverify.net
+34,27,0,0,1,0,-1,unknown,0,none,1,http://chase-login-warning-mfa.com
+41,34,0,0,1,0,-1,unknown,0,none,1,http://wellsfargo-mfa-secure-helpdesk.net
+34,27,0,0,1,0,-1,unknown,0,none,1,http://secure-amex-card-update.net
+39,32,0,0,1,0,-1,unknown,0,none,1,http://visa-cardholder-verifycenter.org
+43,36,0,0,1,0,-1,unknown,0,none,1,http://mastercard-update-authentication.net
+40,33,0,0,1,0,-1,unknown,0,none,1,http://appleid-payment-billing-error.com
+39,32,0,0,1,0,-1,unknown,0,none,1,http://amazonrefund-support-center.info
+47,40,0,0,1,0,-1,unknown,0,none,1,http://meta-business-manager-security-check.net
+41,34,0,0,1,0,-1,unknown,0,none,1,http://instagram-verify-badge-request.com
+40,33,0,0,1,0,-1,unknown,0,none,1,http://tiktok-creators-fund-approval.net
+43,36,0,0,1,0,-1,unknown,0,none,1,http://paypal-invoice-resolution-center.net
+40,33,0,0,1,0,-1,unknown,0,none,1,http://canva-team-access-filewarning.com
+36,29,0,0,1,0,-1,unknown,0,none,1,http://figma-design-share-secure.net
+37,30,0,0,1,0,-1,unknown,0,none,1,http://notion-team-access-request.com
+36,29,0,0,1,0,-1,unknown,0,none,1,http://trello-board-access-alert.net
+40,33,0,0,1,0,-1,unknown,0,none,1,http://asana-workspace-login-secure.info
+41,34,0,0,1,0,-1,unknown,0,none,1,http://github-repo-suspension-warning.net
+40,33,0,0,1,0,-1,unknown,0,none,1,http://pythonpackage-security-update.org
+44,37,0,0,1,0,-1,unknown,0,none,1,http://huggingface-model-review-security.net
+38,31,0,0,1,0,-1,unknown,0,none,1,http://openai-api-key-verification.com
