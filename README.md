@@ -1,12 +1,2 @@
-Increment 1 of the design processes
-This is just me learning how to read URLs and practicing basic rules for scoring websites, to gain some knowledge before attempting more in-depth feature extractions.
-Deliverables
-
-Rule-based heuristics (e.g., suspicious characters, long URLs)
-
-Basic “Phishing / Safe” decision output
-
-CLI or simple API endpoint
-
-At the end of the code, you can enter any URL, and it will detect it when run and provide a log based on its findings.
-So far, this isn't very accurate, but it gives me a baseline on what I need to improve on in the next increment.
+The zip file has the most recent code as of 11/17/2025
+Next thing I will be working on is calling the cache and other databases before the user's URL is run through the model to try and speed up the process to minimize the amount of time the user is on malicious websites.
