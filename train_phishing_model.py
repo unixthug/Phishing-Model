@@ -12,7 +12,16 @@ import joblib
 df = pd.read_csv("phishing_features_dataset.csv")
 
 # Remove columns that are not pure features
-X = df.drop(["label", "url"], axis=1)
+X = df.drop(columns=["label", "url"], errors="ignore")
+
+import json
+import os
+
+os.makedirs("models", exist_ok=True)
+
+with open("models/feature_columns.json", "w") as f:
+    json.dump(list(X.columns), f)
+
 y = df["label"]
 
 # -----------------------------------------
