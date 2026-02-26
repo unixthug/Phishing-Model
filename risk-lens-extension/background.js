@@ -25,7 +25,7 @@ async function fetchModelScore(urlString) {
 
   // Render free tier can cold-start; give it a bit longer
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 8000);
+  const t = setTimeout(() => controller.abort(), 20000);
 
   try {
     const headers = { "Content-Type": "application/json" };
