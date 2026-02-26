@@ -1,55 +1,63 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>RiskLens Settings</title>
-    <style>
-      body { font-family: system-ui, Arial, sans-serif; padding: 16px; max-width: 640px; }
-      .row { margin: 12px 0; }
-      label { display: flex; gap: 10px; align-items: center; }
-      .muted { color: #666; font-size: 12px; }
-      input[type="checkbox"] { transform: scale(1.2); }
-    </style>
-  </head>
-  <body>
-    <h2>RiskLens Settings</h2>
+<head>
+  <meta charset="utf-8" />
+  <title>RiskLens Options</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; padding: 16px; max-width: 720px; }
+    .row { margin: 14px 0; }
+    label { display:flex; align-items:center; gap:10px; }
+    .muted { color:#666; font-size:12px; margin-top:6px; }
+    input[type="checkbox"] { transform: scale(1.15); }
+    input[type="number"] { width: 90px; }
+    select { min-width: 220px; }
+  </style>
+</head>
+<body>
+  <h2>RiskLens Settings</h2>
 
-    <div class="row">
-      <label>
-        <input id="blockingEnabled" type="checkbox" />
-        Enable “Are you sure?” warning for dangerous sites
-      </label>
-      <div class="muted">If enabled, RiskLens will stop navigation and show an interstitial page when a site is scored as dangerous.</div>
+  <div class="row">
+    <label>
+      <input id="blockingEnabled" type="checkbox" />
+      Enable warning page for dangerous sites
+    </label>
+    <div class="muted">
+      If enabled, RiskLens can redirect to a warning page when a site is scored as dangerous.
     </div>
+  </div>
 
-    <div class="row">
-        <label>
-            Continue-anyway bypass duration:
-            <select id="bypassDuration" style="margin-left:10px;">
-            <option value="15">15 minutes</option>
-            <option value="30">30 minutes</option>
-            <option value="45">45 minutes</option>
-            <option value="60">1 hour</option>
-            <option value="120">2 hours</option>
-            <option value="240">4 hours</option>
-            <option value="480">8 hours</option>
-            <option value="1440">24 hours</option>
-            <option value="0">Always (until you clear it)</option>
-            </select>
-        </label>
-        <div class="muted">How long “Continue Anyway” should bypass the warning for that exact URL.</div>
+  <div class="row">
+    <label>
+      Danger threshold (0–100):
+      <input id="dangerThreshold" type="number" min="0" max="100" step="1" />
+    </label>
+    <div class="muted">
+      Sites with score ≥ this value are considered dangerous for blocking.
     </div>
+  </div>
 
-    <div class="row">
-      <label>
-        Danger threshold (0–100):
-        <input id="dangerThreshold" type="number" min="0" max="100" step="1" style="width:90px;" />
-      </label>
-      <div class="muted">Sites with score ≥ this value will trigger the warning (when enabled).</div>
+  <div class="row">
+    <label>
+      “Continue anyway” bypass duration:
+      <select id="bypassDuration">
+        <option value="15">15 minutes</option>
+        <option value="30">30 minutes</option>
+        <option value="45">45 minutes</option>
+        <option value="60">1 hour</option>
+        <option value="120">2 hours</option>
+        <option value="240">4 hours</option>
+        <option value="480">8 hours</option>
+        <option value="1440">24 hours</option>
+        <option value="0">Always</option>
+      </select>
+    </label>
+    <div class="muted">
+      How long “Continue Anyway” should bypass the warning for that exact URL.
     </div>
+  </div>
 
-    <div class="row muted" id="status"></div>
+  <div class="row muted" id="status"></div>
 
-    <script src="options.js"></script>
-  </body>
+  <script src="options.js"></script>
+</body>
 </html>

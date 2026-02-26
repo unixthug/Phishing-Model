@@ -1,18 +1,4 @@
 // RiskLens background.js (Firefox MV2)
-//
-// What this does:
-// - Calls your hosted API (/score) to get a 0–100 score (or prob_phishing -> score).
-// - Sets the toolbar icon per-tab (safe / sus / danger).
-// - If "blockingEnabled" is ON and a URL is known-dangerous (cached), it redirects the tab
-//   to warning.html (an interstitial).
-// - "Continue anyway" sends ALLOW_ONCE to bypass blocking for a configurable duration.
-//
-// Notes / limitations:
-// - To *truly* block a never-before-seen URL BEFORE it loads, you'd need a precomputed
-//   score (cache) or accept gating/redirecting unknown sites to a "checking" page.
-//   This implementation blocks based on cached verdicts (fast + practical UX).
-
-/* ----------------------------- Icons + thresholds ----------------------------- */
 
 const ICONS = {
   safe: "icons/safe.png",
@@ -26,33 +12,30 @@ function scoreToLabel(score0to100) {
   return "safe";
 }
 
-/* ------------------------------- API config --------------------------------- */
-
-// TODO: replace with your real Render endpoint:
+// ✅ Your Render API
 const API_URL = "https://risklens-api-9e7l.onrender.com/score";
-
-// If you are NOT using a key, leave as "".
-// If you set RISKLENS_API_KEY on the server, set the same value here.
-const API_KEY = "";
-
-/* ------------------------------ Settings model ------------------------------- */
+const API_KEY = ""; // set only if your server checks X-API-Key
 
 const DEFAULTS = {
   blockingEnabled: true,
-  dangerThreshold: 70,         // score >= this triggers warning redirect
-  bypassDurationMinutes: 60,   // dropdown default (1 hour); 0 means "Always"
-  cacheTtlMinutes: 30,         // how long to trust cached scores per-host
+  dangerThreshold: 70,
+  bypassDurationMinutes: 60, // 0 = Always
+  cacheTtlMinutes: 30
 };
 
 let settings = { ...DEFAULTS };
 
-// allowlist: key -> expiresAtMs (0 means never expires)
+// allowlist: url -> expiresAtMs (0 = never)
 let allowlist = {};
 
-// cache: hostname -> { score, label, verdict, updatedAtMs, raw }
+// hostCache: hostname -> { score,label,verdict,raw,reason,error,updatedAtMs }
 let hostCache = {};
 
-// Load everything once at startup, and keep in-memory copies updated.
+function now() { return Date.now(); }
+function isHttpUrl(url) { return url.startsWith("http://") || url.startsWith("https://"); }
+function hostnameOf(urlString) { try { return new URL(urlString).hostname; } catch { return null; } }
+
+// Load persisted state
 async function loadState() {
   const s = await browser.storage.local.get(DEFAULTS);
   settings = { ...DEFAULTS, ...s };
@@ -64,18 +47,19 @@ async function loadState() {
   hostCache = c.hostCache || {};
 }
 
+// Keep in-memory copies updated
 browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
   if (changes.blockingEnabled) settings.blockingEnabled = !!changes.blockingEnabled.newValue;
   if (changes.dangerThreshold) settings.dangerThreshold = Number(changes.dangerThreshold.newValue);
   if (changes.bypassDurationMinutes) settings.bypassDurationMinutes = Number(changes.bypassDurationMinutes.newValue);
+  if (changes.cacheTtlMinutes) settings.cacheTtlMinutes = Number(changes.cacheTtlMinutes.newValue);
 
   if (changes.allowlist) allowlist = changes.allowlist.newValue || {};
   if (changes.hostCache) hostCache = changes.hostCache.newValue || {};
 });
 
-// Persist helpers (keep memory + disk in sync)
 async function saveAllowlist() {
   await browser.storage.local.set({ allowlist });
 }
@@ -83,31 +67,13 @@ async function saveHostCache() {
   await browser.storage.local.set({ hostCache });
 }
 
-function now() {
-  return Date.now();
-}
-
-function isHttpUrl(url) {
-  return url.startsWith("http://") || url.startsWith("https://");
-}
-
-function hostnameOf(urlString) {
-  try {
-    return new URL(urlString).hostname;
-  } catch {
-    return null;
-  }
-}
-
 function isAllowlisted(urlString) {
   const exp = allowlist[urlString];
-  if (exp === 0) return true;          // never expires
+  if (exp === 0) return true;
   if (typeof exp === "number" && exp > now()) return true;
 
-  // expired -> clean up
   if (typeof exp === "number" && exp !== 0 && exp <= now()) {
     delete allowlist[urlString];
-    // fire-and-forget cleanup
     saveAllowlist().catch(() => {});
   }
   return false;
@@ -117,16 +83,13 @@ function getCachedForHost(host) {
   const entry = hostCache[host];
   if (!entry) return null;
 
-  const ttlMs = settings.cacheTtlMinutes * 60_000;
+  const ttlMs = Number(settings.cacheTtlMinutes) * 60_000;
   if (typeof entry.updatedAtMs === "number" && entry.updatedAtMs + ttlMs > now()) return entry;
 
-  // expired -> cleanup
   delete hostCache[host];
   saveHostCache().catch(() => {});
   return null;
 }
-
-/* ------------------------------ Model scoring -------------------------------- */
 
 async function fetchModelScore(urlString) {
   let u;
@@ -137,7 +100,6 @@ async function fetchModelScore(urlString) {
     return { score: null, label: "safe", reason: "Not a web page" };
   }
 
-  // Render cold-start can be slow; 20s is safer for first hit.
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), 20000);
 
@@ -152,7 +114,10 @@ async function fetchModelScore(urlString) {
       signal: controller.signal,
     });
 
-    if (!res.ok) throw new Error(`API error ${res.status}`);
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`API error ${res.status} ${text}`.trim());
+    }
 
     const json = await res.json();
 
@@ -170,14 +135,14 @@ async function fetchModelScore(urlString) {
       score: Math.round(score * 10) / 10,
       label,
       reason: json.verdict ? `Model: ${json.verdict}` : "Model result",
-      raw: json,
+      raw: json
     };
   } catch (e) {
     return {
       score: null,
       label: "safe",
       reason: "RiskLens API unreachable (or waking up)",
-      error: String(e),
+      error: String(e)
     };
   } finally {
     clearTimeout(t);
@@ -192,80 +157,82 @@ async function scoreAndCacheHost(urlString) {
   if (cached) return cached;
 
   const r = await fetchModelScore(urlString);
+
+  // ✅ IMPORTANT: keep reason/error so popup can show real failures
   const entry = {
     score: r.score,
     label: r.label,
     verdict: r.raw?.verdict,
     raw: r.raw,
-    updatedAtMs: now(),
+    reason: r.reason || "",
+    error: r.error || "",
+    updatedAtMs: now()
   };
 
   hostCache[host] = entry;
   await saveHostCache();
-
   return entry;
 }
 
-/* --------------------------- Per-tab UI (icons) ------------------------------ */
-
 async function setStateForTab(tabId, url) {
-  // We score and cache by host, but we still show per-tab info in session storage for the popup.
   const hostEntry = await scoreAndCacheHost(url);
 
-  const result = hostEntry?.score == null
-    ? { score: null, label: "safe", reason: "No score", raw: hostEntry?.raw }
-    : {
-        score: hostEntry.score,
-        label: hostEntry.label,
-        reason: hostEntry.verdict ? `Model: ${hostEntry.verdict}` : "Model result",
-        raw: hostEntry.raw,
-      };
+  const result =
+    hostEntry?.score == null
+      ? {
+          score: null,
+          label: hostEntry?.label || "safe",
+          reason: hostEntry?.reason || "No score",
+          raw: hostEntry?.raw,
+          error: hostEntry?.error
+        }
+      : {
+          score: hostEntry.score,
+          label: hostEntry.label,
+          reason: hostEntry.verdict ? `Model: ${hostEntry.verdict}` : "Model result",
+          raw: hostEntry.raw
+        };
 
   await browser.storage.local.set({
     [`tab:${tabId}`]: {
       tabId,
       url,
       ...result,
-      updatedAt: now(),
-    },
+      updatedAt: now()
+    }
   });
 
   await browser.browserAction.setIcon({
     tabId,
-    path: ICONS[result.label] || ICONS.safe,
+    path: ICONS[result.label] || ICONS.safe
   });
 
   const title =
-    result.score == null
-      ? "RiskLens"
-      : `RiskLens: ${result.score}/100 (${result.label})`;
+    result.score == null ? "RiskLens" : `RiskLens: ${result.score}/100 (${result.label})`;
 
   await browser.browserAction.setTitle({ tabId, title });
 }
 
-// On page load completion, score/caches and update icon.
+// Update on load
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete") return;
-  if (!tab?.url) return;
-  if (!isHttpUrl(tab.url)) return;
+  if (!tab?.url || !isHttpUrl(tab.url)) return;
   await setStateForTab(tabId, tab.url);
 });
 
-// When switching tabs, refresh state/icon.
+// Update when switching tabs
 browser.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await browser.tabs.get(tabId);
-  if (!tab?.url) return;
-  if (!isHttpUrl(tab.url)) return;
+  if (!tab?.url || !isHttpUrl(tab.url)) return;
   await setStateForTab(tabId, tab.url);
 });
 
+// Cleanup per-tab storage
 browser.tabs.onRemoved.addListener((tabId) => {
-  browser.storage.local.remove(`tab:${tabId}`);
+  browser.storage.local.remove(`tab:${tabId}`).catch(() => {});
 });
 
-/* ------------------------ Warning page + allow bypass ------------------------- */
-
-// warning.html sends this when the user clicks "Continue Anyway".
+// Continue anyway handler
 browser.runtime.onMessage.addListener(async (msg) => {
   if (msg?.type === "ALLOW_ONCE" && typeof msg.url === "string") {
     const minutes = Number(settings.bypassDurationMinutes);
@@ -273,58 +240,42 @@ browser.runtime.onMessage.addListener(async (msg) => {
     if (!Number.isFinite(minutes) || minutes < 0) {
       allowlist[msg.url] = now() + DEFAULTS.bypassDurationMinutes * 60_000;
     } else if (minutes === 0) {
-      // "Always"
-      allowlist[msg.url] = 0;
+      allowlist[msg.url] = 0; // never expires
     } else {
       allowlist[msg.url] = now() + minutes * 60_000;
     }
     await saveAllowlist();
   }
-
-  // Optional: warning page can ask for a score explicitly.
-  // msg: { type: "SCORE_URL", url: "https://..." }
-  if (msg?.type === "SCORE_URL" && typeof msg.url === "string") {
-    const entry = await scoreAndCacheHost(msg.url);
-    return entry || null;
-  }
 });
 
-/* --------------------------- Blocking / redirecting --------------------------- */
-
-// We only redirect when:
-// - blockingEnabled is ON
-// - URL is http(s)
-// - URL not allowlisted
-// - host is cached as dangerous (score >= dangerThreshold)
-// This avoids blocking *all* unknown sites, while still preventing revisits to known-dangerous hosts.
-
+// Redirect known-dangerous cached hosts (avoids blocking everything)
 browser.webRequest.onBeforeRequest.addListener(
   (details) => {
     try {
       if (!settings.blockingEnabled) return {};
-
       if (details.type !== "main_frame") return {};
+
       const url = details.url;
       if (!isHttpUrl(url)) return {};
 
-      // Don't block our own warning page
       const warningPrefix = browser.runtime.getURL("warning.html");
       if (url.startsWith(warningPrefix)) return {};
 
-      // Allow bypass
       if (isAllowlisted(url)) return {};
 
       const host = hostnameOf(url);
       if (!host) return {};
 
       const cached = getCachedForHost(host);
-      if (!cached || cached.score == null) return {}; // not known-dangerous yet
+      if (!cached || cached.score == null) return {};
 
       const isDanger = Number(cached.score) >= Number(settings.dangerThreshold);
       if (!isDanger) return {};
 
       const redirect = browser.runtime.getURL(
-        `warning.html?target=${encodeURIComponent(url)}&score=${encodeURIComponent(cached.score)}&verdict=${encodeURIComponent(cached.verdict || "")}`
+        `warning.html?target=${encodeURIComponent(url)}&score=${encodeURIComponent(
+          cached.score
+        )}&verdict=${encodeURIComponent(cached.verdict || "")}`
       );
 
       return { redirectUrl: redirect };
@@ -335,7 +286,5 @@ browser.webRequest.onBeforeRequest.addListener(
   { urls: ["<all_urls>"] },
   ["blocking"]
 );
-
-/* --------------------------------- Startup ---------------------------------- */
 
 loadState().catch(() => {});

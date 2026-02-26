@@ -1,7 +1,7 @@
 const DEFAULTS = {
   blockingEnabled: true,
   dangerThreshold: 70,
-  bypassDurationMinutes: 60, // default: 1 hour
+  bypassDurationMinutes: 60
 };
 
 async function load() {
@@ -19,9 +19,7 @@ async function save() {
   await browser.storage.local.set({
     blockingEnabled,
     dangerThreshold: Number.isFinite(dangerThreshold) ? dangerThreshold : DEFAULTS.dangerThreshold,
-    bypassDurationMinutes: Number.isFinite(bypassDurationMinutes)
-      ? bypassDurationMinutes
-      : DEFAULTS.bypassDurationMinutes,
+    bypassDurationMinutes: Number.isFinite(bypassDurationMinutes) ? bypassDurationMinutes : DEFAULTS.bypassDurationMinutes
   });
 
   const status = document.getElementById("status");

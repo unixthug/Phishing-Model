@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "RiskLens",
-  "version": "0.2.0",
-  "description": "Scores sites and can block navigation with a warning interstitial.",
+  "version": "0.3.0",
+  "description": "Scores sites and can warn/block navigation with an interstitial.",
   "permissions": [
     "tabs",
     "storage",

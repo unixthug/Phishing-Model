@@ -12,7 +12,6 @@ function qp(name) {
   document.getElementById("details").textContent =
     `Score: ${score ?? "?"} / 100` + (verdict ? ` • Verdict: ${verdict}` : "");
 
-  // Load current setting
   const cfg = await browser.storage.local.get({ blockingEnabled: true });
   document.getElementById("disable").checked = !cfg.blockingEnabled;
 
@@ -20,15 +19,12 @@ function qp(name) {
     await browser.storage.local.set({ blockingEnabled: !e.target.checked });
   });
 
-  document.getElementById("back").addEventListener("click", async () => {
-    // Go back if possible, otherwise open a safe page
+  document.getElementById("back").addEventListener("click", () => {
     history.length > 1 ? history.back() : (location.href = "about:blank");
   });
 
   document.getElementById("continue").addEventListener("click", async () => {
-    // Tell background to allow this exact URL once (short TTL)
     await browser.runtime.sendMessage({ type: "ALLOW_ONCE", url: target });
-    // Now navigate there
     location.href = target;
   });
 })();

@@ -33,10 +33,13 @@ async function load() {
   document.getElementById("label").textContent =
     data.label ? prettyLabel(data.label) : "Unknown";
 
-  document.getElementById("reason").textContent = data.reason || "";
+  // ✅ show useful reason/errors
+  const reason = data.reason || "";
+  const err = data.error ? `\n${data.error}` : "";
+  document.getElementById("reason").textContent = (reason + err).trim() || "—";
 
   document.getElementById("raw").textContent =
-    data.raw ? JSON.stringify(data.raw, null, 2) : (data.error || "");
+    data.raw ? JSON.stringify(data.raw, null, 2) : "";
 }
 
 document.getElementById("refresh").addEventListener("click", load);
