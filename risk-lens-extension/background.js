@@ -11,8 +11,8 @@ function scoreToLabel(score0to100) {
   return "safe";
 }
 
-const API_URL = "https://YOUR-RENDER-SERVICE.onrender.com/score";
-const API_KEY = "YOUR_KEY"; // leave as "" if not using a key
+const API_URL = "https://risklens-api-9e7l.onrender.com/score";
+const API_KEY = "32d4c8bbd3de7a77c2704bf4a28afa68"; // leave as "" if not using a key
 
 async function fetchModelScore(urlString) {
   let u;
