@@ -1,25 +1,33 @@
 {
   "manifest_version": 2,
   "name": "RiskLens",
-  "version": "0.1.0",
-  "description": "Shows a per-site risk score and changes the toolbar icon based on model output.",
-
+  "version": "0.2.0",
+  "description": "Scores sites and can block navigation with a warning interstitial.",
   "permissions": [
     "tabs",
     "storage",
-    "<all_urls>",
-    "http://127.0.0.1/*",
-    "http://localhost/*"
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
   ],
-
   "browser_action": {
     "default_title": "RiskLens",
     "default_popup": "popup.html",
     "default_icon": "icons/safe.png"
   },
-
   "background": {
     "scripts": ["background.js"],
     "persistent": false
-  }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [
+    "warning.html",
+    "warning.js",
+    "icons/safe.png",
+    "icons/sus.png",
+    "icons/danger.png"
+  ]
 }

@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>RiskLens Warning</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; background: #0f0f0f; color: #fff; margin: 0; }
+      .wrap { max-width: 780px; margin: 60px auto; padding: 24px; }
+      .card { background: #1b1b1b; border: 1px solid #333; border-radius: 14px; padding: 20px; }
+      .muted { color: #b9b9b9; font-size: 13px; }
+      .url { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .btns { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+      button { padding: 10px 14px; border-radius: 10px; border: 1px solid #444; background: #2a2a2a; color: #fff; cursor: pointer; }
+      button.primary { border-color: #d14; }
+      label { display: inline-flex; align-items: center; gap: 10px; margin-top: 16px; }
+      input[type="checkbox"] { transform: scale(1.2); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h2>RiskLens Warning</h2>
+        <p>This website was scored as <strong>dangerous</strong>.</p>
+        <p class="muted">Target:</p>
+        <p class="url" id="target"></p>
+        <p class="muted" id="details"></p>
+
+        <div class="btns">
+          <button id="back">Go Back</button>
+          <button class="primary" id="continue">Continue Anyway</button>
+        </div>
+
+        <label>
+          <input id="disable" type="checkbox" />
+          Disable warnings (you can re-enable in settings)
+        </label>
+      </div>
+    </div>
+
+    <script src="warning.js"></script>
+  </body>
+</html>
