@@ -1,37 +1,51 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>RiskLens</title>
-    <style>
-      body { font-family: system-ui, Arial, sans-serif; margin: 12px; width: 320px; }
-      .muted { color: #666; font-size: 12px; }
-      .big { font-size: 26px; font-weight: 700; }
-      .pill { display:inline-block; padding:2px 10px; border:1px solid #ccc; border-radius:999px; font-size:12px; }
-      button { padding: 6px 10px; }
-      pre { white-space: pre-wrap; font-size: 11px; background: #f6f6f6; padding: 8px; border-radius: 8px; }
-    </style>
-  </head>
-  <body>
-    <div><strong>RiskLens</strong></div>
-    <div class="muted" id="site">Loading…</div>
+<head>
+  <meta charset="utf-8" />
+  <title>RiskLens</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; width: 330px; margin: 0; padding: 12px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+    .title { font-size: 18px; font-weight: 800; margin: 0; }
+    .btn {
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 10px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .btn:hover { background: #f4f4f4; }
+    .muted { color: #666; font-size: 12px; }
+    .pill { display: inline-block; padding: 3px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 12px; }
+    .row { margin-top: 10px; }
+    .scoreRow { display:flex; align-items:center; gap:10px; }
+    pre { white-space: pre-wrap; background: #f7f7f7; padding: 8px; border-radius: 10px; max-height: 140px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="title">RiskLens</div>
+    <button id="openOptions" class="btn" title="Open settings">⚙ Options</button>
+  </div>
 
-    <div style="margin-top:10px;">
-      <span class="big" id="score">--</span>
-      <span class="pill" id="label">--</span>
-    </div>
+  <div class="muted" id="site">Loading…</div>
 
-    <div class="muted" id="reason" style="margin-top:6px;"></div>
+  <div class="row scoreRow">
+    <span id="score" style="font-weight:800;">--</span>
+    <span class="pill" id="label">Unknown</span>
+  </div>
 
-    <div style="margin-top:10px;">
-      <button id="refresh">Refresh</button>
-    </div>
+  <div class="row muted" id="reason">Loading…</div>
 
-    <div style="margin-top:10px;">
-      <div class="muted">Raw response (debug)</div>
-      <pre id="raw"></pre>
-    </div>
+  <div class="row">
+    <button id="refresh" class="btn">Refresh</button>
+  </div>
 
-    <script src="popup.js"></script>
-  </body>
+  <div class="row muted">Raw response (debug)</div>
+  <pre id="raw"></pre>
+
+  <script src="popup.js"></script>
+</body>
 </html>

@@ -230,6 +230,18 @@ browser.tabs.onRemoved.addListener((tabId) => {
 /* ------------------------ Warning page + allow bypass ------------------------- */
 
 browser.runtime.onMessage.addListener(async (msg) => {
+  // Popup asks background to score the active tab immediately
+  if (msg?.type === "SCORE_TAB_NOW" && Number.isFinite(msg.tabId)) {
+    const tab = await browser.tabs.get(msg.tabId);
+    if (tab?.url && tab.id != null) {
+      if (tab.url.startsWith("http://") || tab.url.startsWith("https://")) {
+        await setStateForTab(tab.id, tab.url);
+      }
+    }
+    return;
+  }
+
+  // warning.html sends this when the user clicks "Continue Anyway".
   if (msg?.type === "ALLOW_ONCE" && typeof msg.url === "string") {
     const minutes = Number(settings.bypassDurationMinutes);
 
@@ -241,6 +253,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
       allowlist[msg.url] = now() + minutes * 60_000;
     }
     await saveAllowlist();
+    return;
   }
 });
 
