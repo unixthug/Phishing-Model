@@ -16,12 +16,13 @@ async function load() {
   document.getElementById("site").textContent = tab.url || "(no url)";
 
   const key = `tab:${tab.id}`;
-  const data = (await browser.storage.session.get(key))[key];
+  const data = (await browser.storage.local.get(key))[key];
 
   if (!data) {
     document.getElementById("score").textContent = "--";
     document.getElementById("label").textContent = "Unknown";
-    document.getElementById("reason").textContent = "No data yet. Refresh after the page finishes loading.";
+    document.getElementById("reason").textContent =
+      "No data yet. Refresh after the page finishes loading.";
     document.getElementById("raw").textContent = "";
     return;
   }
