@@ -12,9 +12,8 @@ function scoreToLabel(score0to100) {
   return "safe";
 }
 
-// ✅ Your Render API
+// Your Render API
 const API_URL = "https://risklens-api-9e7l.onrender.com/score";
-const API_KEY = "32d4c8bbd3de7a77c2704bf4a28afa68";
 
 const DEFAULTS = {
   blockingEnabled: true,
@@ -36,7 +35,6 @@ function now() { return Date.now(); }
 function isHttpUrl(url) { return url.startsWith("http://") || url.startsWith("https://"); }
 function hostnameOf(urlString) { try { return new URL(urlString).hostname; } catch { return null; } }
 
-// Load persisted state
 async function loadState() {
   const s = await browser.storage.local.get(DEFAULTS);
   settings = { ...DEFAULTS, ...s };
@@ -48,7 +46,6 @@ async function loadState() {
   hostCache = c.hostCache || {};
 }
 
-// Keep in-memory copies updated
 browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
@@ -56,17 +53,14 @@ browser.storage.onChanged.addListener((changes, area) => {
   if (changes.dangerThreshold) settings.dangerThreshold = Number(changes.dangerThreshold.newValue);
   if (changes.bypassDurationMinutes) settings.bypassDurationMinutes = Number(changes.bypassDurationMinutes.newValue);
   if (changes.cacheTtlMinutes) settings.cacheTtlMinutes = Number(changes.cacheTtlMinutes.newValue);
+  if (changes.apiKey) settings.apiKey = String(changes.apiKey.newValue || "");
 
   if (changes.allowlist) allowlist = changes.allowlist.newValue || {};
   if (changes.hostCache) hostCache = changes.hostCache.newValue || {};
 });
 
-async function saveAllowlist() {
-  await browser.storage.local.set({ allowlist });
-}
-async function saveHostCache() {
-  await browser.storage.local.set({ hostCache });
-}
+async function saveAllowlist() { await browser.storage.local.set({ allowlist }); }
+async function saveHostCache() { await browser.storage.local.set({ hostCache }); }
 
 function isAllowlisted(urlString) {
   const exp = allowlist[urlString];
@@ -92,6 +86,8 @@ function getCachedForHost(host) {
   return null;
 }
 
+/* ------------------------------ Model scoring -------------------------------- */
+
 async function fetchModelScore(urlString) {
   let u;
   try { u = new URL(urlString); } catch {
@@ -101,12 +97,17 @@ async function fetchModelScore(urlString) {
     return { score: null, label: "safe", reason: "Not a web page" };
   }
 
+  // ✅ ALWAYS pull key at request time (prevents startup race)
+  const { apiKey } = await browser.storage.local.get({ apiKey: "" });
+
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), 20000);
 
   try {
     const headers = { "Content-Type": "application/json" };
-    if (settings.apiKey) headers["x-api-key"] = settings.apiKey;
+
+    // ✅ FastAPI x_api_key = Header(...) expects "x-api-key"
+    if (apiKey) headers["x-api-key"] = apiKey;
 
     const res = await fetch(API_URL, {
       method: "POST",
@@ -136,14 +137,14 @@ async function fetchModelScore(urlString) {
       score: Math.round(score * 10) / 10,
       label,
       reason: json.verdict ? `Model: ${json.verdict}` : "Model result",
-      raw: json
+      raw: json,
     };
   } catch (e) {
     return {
       score: null,
       label: "safe",
-      reason: "RiskLens API unreachable (or waking up)",
-      error: String(e)
+      reason: "API call failed",
+      error: String(e),
     };
   } finally {
     clearTimeout(t);
@@ -159,7 +160,6 @@ async function scoreAndCacheHost(urlString) {
 
   const r = await fetchModelScore(urlString);
 
-  // ✅ IMPORTANT: keep reason/error so popup can show real failures
   const entry = {
     score: r.score,
     label: r.label,
@@ -167,13 +167,15 @@ async function scoreAndCacheHost(urlString) {
     raw: r.raw,
     reason: r.reason || "",
     error: r.error || "",
-    updatedAtMs: now()
+    updatedAtMs: now(),
   };
 
   hostCache[host] = entry;
   await saveHostCache();
   return entry;
 }
+
+/* --------------------------- Per-tab UI (icons) ------------------------------ */
 
 async function setStateForTab(tabId, url) {
   const hostEntry = await scoreAndCacheHost(url);
@@ -185,27 +187,22 @@ async function setStateForTab(tabId, url) {
           label: hostEntry?.label || "safe",
           reason: hostEntry?.reason || "No score",
           raw: hostEntry?.raw,
-          error: hostEntry?.error
+          error: hostEntry?.error,
         }
       : {
           score: hostEntry.score,
           label: hostEntry.label,
           reason: hostEntry.verdict ? `Model: ${hostEntry.verdict}` : "Model result",
-          raw: hostEntry.raw
+          raw: hostEntry.raw,
         };
 
   await browser.storage.local.set({
-    [`tab:${tabId}`]: {
-      tabId,
-      url,
-      ...result,
-      updatedAt: now()
-    }
+    [`tab:${tabId}`]: { tabId, url, ...result, updatedAt: now() },
   });
 
   await browser.browserAction.setIcon({
     tabId,
-    path: ICONS[result.label] || ICONS.safe
+    path: ICONS[result.label] || ICONS.safe,
   });
 
   const title =
@@ -214,26 +211,24 @@ async function setStateForTab(tabId, url) {
   await browser.browserAction.setTitle({ tabId, title });
 }
 
-// Update on load
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete") return;
   if (!tab?.url || !isHttpUrl(tab.url)) return;
   await setStateForTab(tabId, tab.url);
 });
 
-// Update when switching tabs
 browser.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await browser.tabs.get(tabId);
   if (!tab?.url || !isHttpUrl(tab.url)) return;
   await setStateForTab(tabId, tab.url);
 });
 
-// Cleanup per-tab storage
 browser.tabs.onRemoved.addListener((tabId) => {
   browser.storage.local.remove(`tab:${tabId}`).catch(() => {});
 });
 
-// Continue anyway handler
+/* ------------------------ Warning page + allow bypass ------------------------- */
+
 browser.runtime.onMessage.addListener(async (msg) => {
   if (msg?.type === "ALLOW_ONCE" && typeof msg.url === "string") {
     const minutes = Number(settings.bypassDurationMinutes);
@@ -241,7 +236,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
     if (!Number.isFinite(minutes) || minutes < 0) {
       allowlist[msg.url] = now() + DEFAULTS.bypassDurationMinutes * 60_000;
     } else if (minutes === 0) {
-      allowlist[msg.url] = 0; // never expires
+      allowlist[msg.url] = 0;
     } else {
       allowlist[msg.url] = now() + minutes * 60_000;
     }
@@ -249,7 +244,8 @@ browser.runtime.onMessage.addListener(async (msg) => {
   }
 });
 
-// Redirect known-dangerous cached hosts (avoids blocking everything)
+/* --------------------------- Blocking / redirecting --------------------------- */
+
 browser.webRequest.onBeforeRequest.addListener(
   (details) => {
     try {
