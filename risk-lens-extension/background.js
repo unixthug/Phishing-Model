@@ -14,7 +14,7 @@ function scoreToLabel(score0to100) {
 
 // ✅ Your Render API
 const API_URL = "https://risklens-api-9e7l.onrender.com/score";
-const API_KEY = ""; // set only if your server checks X-API-Key
+const API_KEY = "32d4c8bbd3de7a77c2704bf4a28afa68";
 
 const DEFAULTS = {
   blockingEnabled: true,
