@@ -29,7 +29,7 @@ function scoreToLabel(score0to100) {
 /* ------------------------------- API config --------------------------------- */
 
 // TODO: replace with your real Render endpoint:
-const API_URL = "https://YOUR-RENDER-SERVICE.onrender.com/score";
+const API_URL = "https://risklens-api-9e7l.onrender.com/score";
 
 // If you are NOT using a key, leave as "".
 // If you set RISKLENS_API_KEY on the server, set the same value here.
@@ -221,7 +221,7 @@ async function setStateForTab(tabId, url) {
         raw: hostEntry.raw,
       };
 
-  await browser.storage.session.set({
+  await browser.storage.local.set({
     [`tab:${tabId}`]: {
       tabId,
       url,
@@ -257,6 +257,10 @@ browser.tabs.onActivated.addListener(async ({ tabId }) => {
   if (!tab?.url) return;
   if (!isHttpUrl(tab.url)) return;
   await setStateForTab(tabId, tab.url);
+});
+
+browser.tabs.onRemoved.addListener((tabId) => {
+  browser.storage.local.remove(`tab:${tabId}`);
 });
 
 /* ------------------------ Warning page + allow bypass ------------------------- */
