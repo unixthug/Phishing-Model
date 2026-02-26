@@ -33,7 +33,6 @@ async function load() {
   document.getElementById("label").textContent =
     data.label ? prettyLabel(data.label) : "Unknown";
 
-  // ✅ show useful reason/errors
   const reason = data.reason || "";
   const err = data.error ? `\n${data.error}` : "";
   document.getElementById("reason").textContent = (reason + err).trim() || "—";
@@ -43,4 +42,10 @@ async function load() {
 }
 
 document.getElementById("refresh").addEventListener("click", load);
+
+document.getElementById("openOptions").addEventListener("click", async () => {
+  await browser.runtime.openOptionsPage();
+  window.close();
+});
+
 load();
