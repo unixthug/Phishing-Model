@@ -5,7 +5,7 @@ async function getActiveTab() {
 
 function prettyLabel(label) {
   if (label === "danger") return "Danger";
-  if (label === "warn") return "Warning";
+  if (label === "sus") return "Suspicious";
   return "Safe";
 }
 

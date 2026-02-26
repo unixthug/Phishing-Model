@@ -1,13 +1,13 @@
 const ICONS = {
   safe: "icons/safe.png",
-  warn: "icons/warn.png",
+  sus: "icons/sus.png",
   danger: "icons/danger.png",
 };
 
 function scoreToLabel(score0to100) {
   // Change these thresholds however you want
   if (score0to100 >= 70) return "danger";
-  if (score0to100 >= 40) return "warn";
+  if (score0to100 >= 40) return "sus";
   return "safe";
 }
 
