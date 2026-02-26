@@ -11,8 +11,10 @@ function scoreToLabel(score0to100) {
   return "safe";
 }
 
+const API_URL = "https://YOUR-RENDER-SERVICE.onrender.com/score";
+const API_KEY = "YOUR_KEY"; // leave as "" if not using a key
+
 async function fetchModelScore(urlString) {
-  // ignore non-http(s)
   let u;
   try { u = new URL(urlString); } catch {
     return { score: null, label: "safe", reason: "Invalid URL" };
@@ -21,23 +23,25 @@ async function fetchModelScore(urlString) {
     return { score: null, label: "safe", reason: "Not a web page" };
   }
 
-  // 2s timeout so the extension never “hangs”
+  // Render free tier can cold-start; give it a bit longer
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 2000);
+  const t = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const res = await fetch("http://127.0.0.1:8000/score", {
+    const headers = { "Content-Type": "application/json" };
+    if (API_KEY) headers["X-API-Key"] = API_KEY;
+
+    const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ url: urlString }),
       signal: controller.signal,
     });
+
     if (!res.ok) throw new Error(`API error ${res.status}`);
 
     const json = await res.json();
 
-    // Prefer a 0-100 score if your API returns it.
-    // If only prob_phishing exists (0..1), convert to 0..100:
     let score = null;
     if (json.score != null) score = Number(json.score);
     else if (json.prob_phishing != null) score = Number(json.prob_phishing) * 100;
@@ -49,7 +53,7 @@ async function fetchModelScore(urlString) {
     const label = scoreToLabel(score);
 
     return {
-      score: Math.round(score * 10) / 10, // 1 decimal
+      score: Math.round(score * 10) / 10,
       label,
       reason: json.verdict ? `Model: ${json.verdict}` : "Model result",
       raw: json,
@@ -58,7 +62,7 @@ async function fetchModelScore(urlString) {
     return {
       score: null,
       label: "safe",
-      reason: "Model API unreachable (is it running?)",
+      reason: "RiskLens API unreachable (or waking up)",
       error: String(e),
     };
   } finally {
