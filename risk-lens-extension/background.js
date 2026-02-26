@@ -20,7 +20,8 @@ const DEFAULTS = {
   blockingEnabled: true,
   dangerThreshold: 70,
   bypassDurationMinutes: 60, // 0 = Always
-  cacheTtlMinutes: 30
+  cacheTtlMinutes: 30,
+  apiKey: ""
 };
 
 let settings = { ...DEFAULTS };
@@ -105,7 +106,7 @@ async function fetchModelScore(urlString) {
 
   try {
     const headers = { "Content-Type": "application/json" };
-    if (API_KEY) headers["X-API-Key"] = API_KEY;
+    if (settings.apiKey) headers["x-api-key"] = settings.apiKey;
 
     const res = await fetch(API_URL, {
       method: "POST",

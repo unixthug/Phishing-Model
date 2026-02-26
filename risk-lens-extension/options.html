@@ -4,13 +4,29 @@
   <meta charset="utf-8" />
   <title>RiskLens Options</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; padding: 16px; max-width: 720px; }
+    body { font-family: system-ui, Arial, sans-serif; padding: 16px; max-width: 760px; }
     .row { margin: 14px 0; }
-    label { display:flex; align-items:center; gap:10px; }
+    label { display:flex; align-items:center; gap:10px; flex-wrap: wrap; }
     .muted { color:#666; font-size:12px; margin-top:6px; }
     input[type="checkbox"] { transform: scale(1.15); }
     input[type="number"] { width: 90px; }
     select { min-width: 220px; }
+    input[type="password"] {
+      width: 420px; max-width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+    button {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #f4f4f4; }
+    hr { margin: 18px 0; border: none; border-top: 1px solid #eee; }
+    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -56,7 +72,22 @@
     </div>
   </div>
 
-  <div class="row muted" id="status"></div>
+  <hr>
+
+  <div class="row">
+    <label>
+      API Key (sent as <code>x-api-key</code>):
+      <input id="apiKey" type="password" placeholder="Paste your RISKLENS_API_KEY here" />
+    </label>
+    <div class="muted">
+      This must match your Render env var <code>RISKLENS_API_KEY</code>.
+    </div>
+  </div>
+
+  <div class="row">
+    <button id="saveBtn">Save</button>
+    <span class="muted" id="status"></span>
+  </div>
 
   <script src="options.js"></script>
 </body>
