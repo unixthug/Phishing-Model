@@ -19,6 +19,15 @@ function qp(name) {
     await browser.storage.local.set({ blockingEnabled: !e.target.checked });
   });
 
+  document.getElementById("optionsBtn").addEventListener("click", async () => {
+    if (browser?.runtime?.openOptionsPage) {
+      await browser.runtime.openOptionsPage();
+    } else {
+      // fallback
+      await browser.tabs.create({ url: browser.runtime.getURL("options.html") });
+    }
+  });
+
   document.getElementById("back").addEventListener("click", () => {
     history.length > 1 ? history.back() : (location.href = "about:blank");
   });

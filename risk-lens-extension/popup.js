@@ -149,6 +149,14 @@ document.getElementById("toggleAdvanced").addEventListener("click", async () => 
     showAdvancedView: showAdvanced,
   });
 
+document.getElementById("openOptions").addEventListener("click", async () => {
+  if (browser?.runtime?.openOptionsPage) {
+    await browser.runtime.openOptionsPage();
+  } else {
+    await browser.tabs.create({ url: browser.runtime.getURL("options.html") });
+  }
+});
+
   updateView();
 });
 
