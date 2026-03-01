@@ -1,8 +1,7 @@
 const DEFAULTS = {
   blockingEnabled: true,
   dangerThreshold: 70,
-  bypassDurationMinutes: 60,
-  apiKey: ""
+  bypassDurationMinutes: 60
 };
 
 async function load() {
@@ -10,20 +9,17 @@ async function load() {
   document.getElementById("blockingEnabled").checked = !!cfg.blockingEnabled;
   document.getElementById("dangerThreshold").value = String(cfg.dangerThreshold);
   document.getElementById("bypassDuration").value = String(cfg.bypassDurationMinutes);
-  document.getElementById("apiKey").value = cfg.apiKey || "";
 }
 
 async function save() {
   const blockingEnabled = document.getElementById("blockingEnabled").checked;
   const dangerThreshold = Number(document.getElementById("dangerThreshold").value);
   const bypassDurationMinutes = Number(document.getElementById("bypassDuration").value);
-  const apiKey = document.getElementById("apiKey").value.trim();
 
   await browser.storage.local.set({
     blockingEnabled,
     dangerThreshold: Number.isFinite(dangerThreshold) ? dangerThreshold : DEFAULTS.dangerThreshold,
-    bypassDurationMinutes: Number.isFinite(bypassDurationMinutes) ? bypassDurationMinutes : DEFAULTS.bypassDurationMinutes,
-    apiKey
+    bypassDurationMinutes: Number.isFinite(bypassDurationMinutes) ? bypassDurationMinutes : DEFAULTS.bypassDurationMinutes
   });
 
   const status = document.getElementById("status");

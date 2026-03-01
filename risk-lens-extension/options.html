@@ -11,12 +11,6 @@
     input[type="checkbox"] { transform: scale(1.15); }
     input[type="number"] { width: 90px; }
     select { min-width: 220px; }
-    input[type="password"] {
-      width: 420px; max-width: 100%;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-    }
     button {
       padding: 8px 12px;
       border-radius: 10px;
@@ -24,18 +18,18 @@
       background: #fff;
       cursor: pointer;
     }
-    button:hover { background: #f4f4f4; }
-    hr { margin: 18px 0; border: none; border-top: 1px solid #eee; }
-    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
+    button:hover { filter: brightness(0.98); }
+    hr { margin: 18px 0; }
   </style>
 </head>
+
 <body>
-  <h2>RiskLens Settings</h2>
+  <h2>RiskLens Options</h2>
 
   <div class="row">
     <label>
       <input id="blockingEnabled" type="checkbox" />
-      Enable warning page for dangerous sites
+      Enable blocking (warning page for dangerous sites)
     </label>
     <div class="muted">
       If enabled, RiskLens can redirect to a warning page when a site is scored as dangerous.
@@ -68,19 +62,7 @@
       </select>
     </label>
     <div class="muted">
-      How long “Continue Anyway” should bypass the warning for that exact URL.
-    </div>
-  </div>
-
-  <hr>
-
-  <div class="row">
-    <label>
-      API Key (sent as <code>x-api-key</code>):
-      <input id="apiKey" type="password" placeholder="Paste your RISKLENS_API_KEY here" />
-    </label>
-    <div class="muted">
-      This must match your Render env var <code>RISKLENS_API_KEY</code>.
+      How long “Continue Anyway” should bypass the warning for that site (hostname).
     </div>
   </div>
 

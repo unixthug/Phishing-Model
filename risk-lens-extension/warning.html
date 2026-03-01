@@ -1,137 +1,260 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>RiskLens Warning</title>
+  <title>RiskLens — Unsafe Site Warning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    :root{
+      --bg: #0b1220;
+      --card: #0f172a;
+      --border: rgba(148,163,184,.16);
+      --muted: rgba(226,232,240,.75);
+      --text: #e2e8f0;
+
+      --danger: #ef4444;
+      --danger2: rgba(239,68,68,.12);
+
+      --safe: #22c55e;
+      --btn: #1f2937;
+      --btn2: #111827;
+
+      --shadow: 0 20px 60px rgba(0,0,0,.55);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
       margin: 0;
-      padding: 24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(900px 500px at 15% 10%, rgba(239,68,68,.12), transparent 60%),
+                  radial-gradient(900px 500px at 85% 15%, rgba(148,163,184,.09), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
       display: flex;
+      align-items: center;
       justify-content: center;
+      padding: 22px;
     }
 
-    #card {
-      width: 720px;
+    .wrap {
+      width: 860px;
       max-width: 100%;
-      background: #1e293b;
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
     }
 
-    h2 {
-      margin: 0 0 8px 0;
-      color: #ef4444;
-      font-size: 22px;
+    .card {
+      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(15,23,42,.88));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
     }
 
-    .muted {
-      opacity: 0.75;
-      font-size: 13px;
+    .top {
+      display: flex;
+      gap: 14px;
+      padding: 18px 18px 14px 18px;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(239,68,68,.10), transparent);
+    }
+
+    .badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--danger2);
+      border: 1px solid rgba(239,68,68,.25);
+      flex: 0 0 auto;
+    }
+
+    .badge svg { width: 22px; height: 22px; fill: var(--danger); }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      letter-spacing: .2px;
+    }
+
+    .sub {
       margin: 6px 0 0 0;
-      word-break: break-word;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .content {
+      padding: 16px 18px 18px 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .info {
+      background: rgba(2,6,23,.45);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 12px;
+      display: grid;
+      gap: 8px;
     }
 
     .row {
-      margin-top: 14px;
-      padding: 12px;
-      background: #0b1220;
-      border: 1px solid rgba(148,163,184,0.15);
-      border-radius: 12px;
+      display: grid;
+      gap: 6px;
     }
 
-    .row strong { color: #fff; }
+    .label {
+      font-size: 12px;
+      color: rgba(226,232,240,.70);
+    }
 
-    .btnRow {
-      display: flex;
+    #target {
+      font-size: 14px;
+      font-weight: 650;
+      word-break: break-word;
+      color: #fff;
+    }
+
+    #details {
+      font-size: 12px;
+      color: rgba(226,232,240,.70);
+      word-break: break-word;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 14px;
-      flex-wrap: wrap;
+      margin-top: 2px;
     }
 
     button {
-      flex: 1;
-      min-width: 220px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(148,163,184,0.18);
-      cursor: pointer;
-      font-size: 14px;
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      background: linear-gradient(180deg, rgba(31,41,55,.95), rgba(17,24,39,.95));
       color: #fff;
-      background: #334155;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform .06s ease, filter .15s ease, border-color .15s ease;
     }
-    button:hover { background: #475569; }
+    button:hover { filter: brightness(1.06); border-color: rgba(148,163,184,.24); }
+    button:active { transform: translateY(1px); }
 
     #back {
-      background: #22c55e;
-      border-color: rgba(34,197,94,0.35);
-      color: #0b1220;
-      font-weight: 700;
+      background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(22,163,74,.95));
+      border-color: rgba(34,197,94,.35);
+      color: #07110a;
     }
-    #back:hover { filter: brightness(1.05); }
 
     #continue {
-      background: #ef4444;
-      border-color: rgba(239,68,68,0.35);
-      font-weight: 700;
+      background: linear-gradient(180deg, rgba(239,68,68,.95), rgba(220,38,38,.95));
+      border-color: rgba(239,68,68,.38);
     }
-    #continue:hover { filter: brightness(1.05); }
 
-    .controls {
+    .footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
-      margin-top: 14px;
+      margin-top: 6px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
     }
 
-    label {
-      display: flex;
-      align-items: center;
+    .toggle {
+      display: inline-flex;
       gap: 10px;
+      align-items: center;
       font-size: 13px;
-      opacity: 0.9;
+      color: rgba(226,232,240,.84);
+      user-select: none;
     }
 
     input[type="checkbox"] { transform: scale(1.1); }
 
-    #optionsBtn {
-      flex: 0;
-      min-width: 160px;
+    .ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: rgba(226,232,240,.92);
+      font-weight: 600;
+      padding: 9px 11px;
+      border-radius: 12px;
+    }
+
+    .ghost:hover { filter: brightness(1.05); }
+
+    /* small screens */
+    @media (max-width: 640px) {
+      .actions { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 
 <body>
-  <div id="card">
-    <h2>⚠️ RiskLens blocked this page</h2>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div class="badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2 1 21h22L12 2zm1 14h-2v2h2v-2zm0-8h-2v6h2V8z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1>This site may be unsafe</h1>
+          <p class="sub">
+            RiskLens detected patterns consistent with phishing or malicious behavior.
+            If you continue, do not enter passwords or payment information.
+          </p>
+        </div>
+      </div>
 
-    <div class="row">
-      <div><strong>Target:</strong> <span id="target"></span></div>
-      <div class="muted" id="details"></div>
-    </div>
+      <div class="content">
+        <div class="info">
+          <div class="row">
+            <div class="label">Blocked URL</div>
+            <div id="target">Loading…</div>
+            <div id="details"></div>
+          </div>
+        </div>
 
-    <div class="controls">
-      <label>
-        <input id="disable" type="checkbox" />
-        Disable blocking (allow dangerous sites without warning)
-      </label>
+        <div class="hint">
+          Tip: If this is a login portal you trust, verify the domain spelling and the HTTPS lock icon.
+          Phishing pages often use look-alike domains.
+        </div>
 
-      <button id="optionsBtn">Open Settings</button>
-    </div>
+        <div class="actions">
+          <button id="back">Go Back (Recommended)</button>
+          <button id="continue">Continue Anyway</button>
+        </div>
 
-    <div class="btnRow">
-      <button id="back">Go Back (Recommended)</button>
-      <button id="continue">Continue Anyway</button>
+        <div class="footer">
+          <label class="toggle">
+            <input id="disable" type="checkbox" />
+            Disable blocking (don’t show this warning)
+          </label>
+
+          <button id="optionsBtn" class="ghost">Settings</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- IMPORTANT: external script (no inline JS) -->
   <script src="warning.js"></script>
 </body>
 </html>

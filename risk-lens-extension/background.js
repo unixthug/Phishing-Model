@@ -1,32 +1,17 @@
-// RiskLens background.js (Firefox MV2)
-
-const ICONS = {
-  safe: "icons/safe.png",
-  sus: "icons/sus.png",
-  danger: "icons/danger.png",
-};
-
-function scoreToLabel(score0to100) {
-  if (score0to100 >= 70) return "danger";
-  if (score0to100 >= 40) return "sus";
-  return "safe";
-}
-
-// Your Render API
-const API_URL = "https://risklens-api-9e7l.onrender.com/score";
+/* ============================== RiskLens Background ============================== */
 
 const DEFAULTS = {
+  apiBaseUrl: "https://risklens-api-9e7l.onrender.com",
   blockingEnabled: true,
   dangerThreshold: 70,
-  bypassDurationMinutes: 60, // 0 = Always
-  cacheTtlMinutes: 30,
-  apiKey: ""
+  cacheTtlMinutes: 10,
+  bypassDurationMinutes: 60
 };
 
 let settings = { ...DEFAULTS };
 
-// allowlist: url -> expiresAtMs (0 = never)
-let allowlist = {};
+// allowlistHosts: hostname -> expiresAtMs (0 = never)
+let allowlistHosts = {};
 
 // hostCache: hostname -> { score,label,verdict,raw,reason,error,updatedAtMs }
 let hostCache = {};
@@ -40,19 +25,22 @@ async function saveHostCache() {
 }
 
 async function saveAllowlist() {
-  await browser.storage.local.set({ allowlist });
+  await browser.storage.local.set({ allowlistHosts });
 }
 
 function isAllowlisted(url) {
-  const expiresAt = allowlist[url];
+  const host = hostnameOf(url);
+  if (!host) return false;
+
+  const expiresAt = allowlistHosts[host];
   if (expiresAt == null) return false;
 
   if (expiresAt === 0) return true; // never expires
 
   if (typeof expiresAt === "number" && expiresAt > now()) return true;
 
-  // expired / invalid -> cleanup
-  delete allowlist[url];
+  // expired -> cleanup
+  delete allowlistHosts[host];
   saveAllowlist().catch(() => {});
   return false;
 }
@@ -61,33 +49,62 @@ async function loadState() {
   const s = await browser.storage.local.get(DEFAULTS);
   settings = { ...DEFAULTS, ...s };
 
-  const a = await browser.storage.local.get({ allowlist: {} });
-  allowlist = a.allowlist || {};
+  const a = await browser.storage.local.get({ allowlistHosts: {}, allowlist: {} });
+  // backward compat: migrate old exact-URL allowlist -> hostname allowlist
+  allowlistHosts = a.allowlistHosts || {};
+  if (!Object.keys(allowlistHosts).length && a.allowlist && typeof a.allowlist === "object") {
+    for (const [url, exp] of Object.entries(a.allowlist)) {
+      const h = hostnameOf(url);
+      if (h) allowlistHosts[h] = exp;
+    }
+    await browser.storage.local.set({ allowlistHosts });
+  }
 
   const c = await browser.storage.local.get({ hostCache: {} });
   hostCache = c.hostCache || {};
 }
 
-function buildExplanation(raw) {
+function scoreToLabel(score) {
+  if (score == null) return "safe";
+  const s = Number(score);
+  if (!Number.isFinite(s)) return "safe";
+  if (s >= 70) return "danger";
+  if (s >= 40) return "suspicious";
+  return "safe";
+}
+
+const ICONS = {
+  safe: {
+    16: "icons/safe-16.png",
+    32: "icons/safe-32.png"
+  },
+  suspicious: {
+    16: "icons/suspicious-16.png",
+    32: "icons/suspicious-32.png"
+  },
+  danger: {
+    16: "icons/danger-16.png",
+    32: "icons/danger-32.png"
+  }
+};
+
+function pickTopReasons(raw) {
   if (!raw) return [];
+  const reasons = raw.reasons || raw.why_flagged || raw.explanations;
+  if (Array.isArray(reasons)) return reasons.slice(0, 3);
 
-  const reasons = [];
-
-  // NOTE: your API currently does NOT return `features`,
-  // so this will stay empty unless you add it server-side.
-  if (raw?.features) {
-    const f = raw.features;
-
-    if (f.has_ip) reasons.push("Uses IP address instead of domain");
-    if (f.punycode) reasons.push("Uses encoded domain (possible spoofing)");
-    if (f.shortener) reasons.push("Uses URL shortener");
-    if (f.susp_words_host || f.susp_words_path_query)
-      reasons.push("Contains suspicious keywords");
-    if (f.entropy_url > 4) reasons.push("Unusual/random-looking URL");
-    if (f.longest_digit_run > 5) reasons.push("Long digit sequences in URL");
+  // If backend ever returns a dict of feature->importance, show top 3
+  if (reasons && typeof reasons === "object") {
+    const entries = Object.entries(reasons)
+      .map(([k, v]) => ({ k, v: Number(v) }))
+      .filter((x) => Number.isFinite(x.v))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, 3)
+      .map((x) => `${x.k}: ${x.v}`);
+    return entries;
   }
 
-  return reasons.slice(0, 3);
+  return [];
 }
 
 browser.storage.onChanged.addListener((changes, area) => {
@@ -98,15 +115,7 @@ browser.storage.onChanged.addListener((changes, area) => {
   if (changes.bypassDurationMinutes) settings.bypassDurationMinutes = Number(changes.bypassDurationMinutes.newValue);
   if (changes.cacheTtlMinutes) settings.cacheTtlMinutes = Number(changes.cacheTtlMinutes.newValue);
 
-  if (changes.apiKey) {
-    settings.apiKey = String(changes.apiKey.newValue || "");
-
-    // CLEAR CACHE when API key changes
-    hostCache = {};
-    browser.storage.local.set({ hostCache: {} });
-  }
-
-  if (changes.allowlist) allowlist = changes.allowlist.newValue || {};
+  if (changes.allowlistHosts) allowlistHosts = changes.allowlistHosts.newValue || {};
   if (changes.hostCache) hostCache = changes.hostCache.newValue || {};
 });
 
@@ -129,114 +138,82 @@ async function fetchModelScore(urlString) {
   try { u = new URL(urlString); } catch {
     return { score: null, label: "safe", reason: "Invalid URL" };
   }
-  if (u.protocol !== "http:" && u.protocol !== "https:") {
-    return { score: null, label: "safe", reason: "Not a web page" };
+  if (!["http:", "https:"].includes(u.protocol)) {
+    return { score: null, label: "safe", reason: "Unsupported URL scheme" };
   }
 
-  // Always pull key at request time (prevents startup race)
-  const { apiKey } = await browser.storage.local.get({ apiKey: "" });
+  // No per-user API key (public API)
+  const headers = { "Content-Type": "application/json" };
 
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 20000);
+  const apiBase = (settings.apiBaseUrl || DEFAULTS.apiBaseUrl).replace(/\/+$/, "");
+  const endpoint = `${apiBase}/score`;
 
   try {
-    const headers = { "Content-Type": "application/json" };
-    if (apiKey) headers["x-api-key"] = apiKey;
-
-    const res = await fetch(API_URL, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers,
-      body: JSON.stringify({ url: urlString }),
-      signal: controller.signal,
+      body: JSON.stringify({ url: urlString })
     });
 
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
+
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`API error ${res.status} ${text}`.trim());
+      const msg =
+        (data && (data.detail || data.error)) ||
+        `API error (${res.status})`;
+      return { score: null, label: "safe", reason: msg, raw: data || text };
     }
 
-    const json = await res.json();
-
-    let score = null;
-    if (json.score != null) score = Number(json.score);
-    else if (json.prob_phishing != null) score = Number(json.prob_phishing) * 100;
-
-    if (!Number.isFinite(score)) {
-      return { score: null, label: "safe", reason: "Bad model response", raw: json };
-    }
+    const prob = data?.prob_phishing;
+    const score = data?.score != null ? Number(data.score) :
+      (Number.isFinite(Number(prob)) ? Math.round(Number(prob) * 100) : null);
 
     const label = scoreToLabel(score);
+    const verdict = data?.verdict || null;
 
     return {
-      score: Math.round(score * 10) / 10,
+      score,
       label,
-      reason: json.verdict ? `Model: ${json.verdict}` : "Model result",
-      raw: json,
+      verdict,
+      reason: verdict ? `Model: ${verdict}` : "Model result",
+      raw: data
     };
   } catch (e) {
-    return {
-      score: null,
-      label: "safe",
-      reason: "API call failed",
-      error: String(e),
-    };
-  } finally {
-    clearTimeout(t);
+    return { score: null, label: "safe", reason: "Network error", error: String(e) };
   }
 }
 
-async function scoreAndCacheHost(urlString) {
-  const host = hostnameOf(urlString);
-  if (!host) return null;
-
-  const cached = getCachedForHost(host);
-  if (cached) return cached;
-
-  const r = await fetchModelScore(urlString);
-
-  // Do NOT cache failures
-  if (r.score == null) {
-    return {
-      score: null,
-      label: r.label,
-      verdict: r.raw?.verdict,
-      raw: r.raw,
-      reason: r.reason || "",
-      error: r.error || "",
-      updatedAtMs: now(),
-    };
-  }
-
-  const entry = {
-    score: r.score,
-    label: r.label,
-    verdict: r.raw?.verdict,
-    raw: r.raw,
-    reason: r.reason || "",
-    error: r.error || "",
-    updatedAtMs: now(),
-  };
-
-  hostCache[host] = entry;
-  await saveHostCache();
-  return entry;
-}
-
-/* --------------------------- Per-tab UI (icons) ------------------------------ */
+/* ------------------------------ Tab state -------------------------------- */
 
 async function setStateForTab(tabId, url) {
-  const hostEntry = await scoreAndCacheHost(url);
-  const explanations = buildExplanation(hostEntry?.raw);
+  const host = hostnameOf(url);
+  if (!host) return;
+
+  const cached = getCachedForHost(host);
+  let hostEntry = cached;
+
+  if (!cached) {
+    const result = await fetchModelScore(url);
+    hostEntry = {
+      score: result.score,
+      label: result.label,
+      verdict: result.verdict,
+      raw: result.raw || null,
+      reason: result.reason || null,
+      error: result.error || null,
+      updatedAtMs: now()
+    };
+    hostCache[host] = hostEntry;
+    await saveHostCache();
+  }
+
+  const explanations = pickTopReasons(hostEntry.raw);
 
   const result =
-    hostEntry?.score == null
-      ? {
-          score: null,
-          label: hostEntry?.label || "safe",
-          reason: hostEntry?.reason || "No score",
-          raw: hostEntry?.raw,
-          error: hostEntry?.error,
-        }
+    hostEntry.error
+      ? { score: null, label: "safe", reason: hostEntry.reason || "Error", error: hostEntry.error, raw: hostEntry.raw }
       : {
           score: hostEntry.score,
           label: hostEntry.label,
@@ -290,17 +267,23 @@ browser.runtime.onMessage.addListener(async (msg) => {
   }
 
   // warning.html sends this when the user clicks "Continue Anyway".
-  if (msg?.type === "ALLOW_ONCE" && typeof msg.url === "string") {
+  if (msg?.type === "ALLOW_ONCE") {
+    const targetUrl = typeof msg.url === "string" ? msg.url : "";
+    const host = typeof msg.host === "string" ? msg.host : hostnameOf(targetUrl);
+    if (!host) return;
+
     const minutes = Number(settings.bypassDurationMinutes);
 
+    let expiresAt;
     if (!Number.isFinite(minutes) || minutes < 0) {
-      allowlist[msg.url] = now() + DEFAULTS.bypassDurationMinutes * 60_000;
+      expiresAt = now() + DEFAULTS.bypassDurationMinutes * 60_000;
     } else if (minutes === 0) {
-      allowlist[msg.url] = 0;
+      expiresAt = 0; // always
     } else {
-      allowlist[msg.url] = now() + minutes * 60_000;
+      expiresAt = now() + minutes * 60_000;
     }
 
+    allowlistHosts[host] = expiresAt;
     await saveAllowlist();
     return;
   }
@@ -333,8 +316,8 @@ browser.webRequest.onBeforeRequest.addListener(
 
       const redirect = browser.runtime.getURL(
         `warning.html?target=${encodeURIComponent(url)}&score=${encodeURIComponent(
-          cached.score
-        )}&verdict=${encodeURIComponent(cached.verdict || "")}`
+          String(cached.score)
+        )}&verdict=${encodeURIComponent(String(cached.verdict || ""))}`
       );
 
       return { redirectUrl: redirect };
@@ -345,5 +328,7 @@ browser.webRequest.onBeforeRequest.addListener(
   { urls: ["<all_urls>"] },
   ["blocking"]
 );
+
+/* ------------------------------- Init -------------------------------- */
 
 loadState().catch(() => {});

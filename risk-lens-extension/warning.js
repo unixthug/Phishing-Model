@@ -23,7 +23,6 @@ function qp(name) {
     if (browser?.runtime?.openOptionsPage) {
       await browser.runtime.openOptionsPage();
     } else {
-      // fallback
       await browser.tabs.create({ url: browser.runtime.getURL("options.html") });
     }
   });
@@ -33,7 +32,10 @@ function qp(name) {
   });
 
   document.getElementById("continue").addEventListener("click", async () => {
-    await browser.runtime.sendMessage({ type: "ALLOW_ONCE", url: target });
-    location.href = target;
+    let host = "";
+    try { host = new URL(target).hostname; } catch {}
+    await browser.runtime.sendMessage({ type: "ALLOW_ONCE", url: target, host });
+    // replace() avoids back-button loops where the warning page stays in history
+    location.replace(target);
   });
 })();
