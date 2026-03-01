@@ -193,9 +193,11 @@ async function scoreAndCacheHost(urlString) {
     error: r.error || "",
     updatedAtMs: now(),
   };
+  if (entry.score != null) {
+    hostCache[host] = entry;
+    await saveHostCache();
+  }
 
-  hostCache[host] = entry;
-  await saveHostCache();
   return entry;
 }
 

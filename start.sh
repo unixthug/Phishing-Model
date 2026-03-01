@@ -4,7 +4,7 @@ set -e
 mkdir -p /app/models
 
 : "${MODEL_PKL_URL:?MODEL_PKL_URL is not set}"
-: "${FEATURE_COLS_PKL_URL:?FEATURE_COLS_PKL_URL is not set}"
+: "${FEATURE_COLS_URL:?FEATURE_COLS_URL is not set}"
 
 AUTH_HEADER=""
 if [ -n "${HF_TOKEN:-}" ]; then

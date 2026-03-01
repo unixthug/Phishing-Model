@@ -40,8 +40,6 @@ def _download(url: str, dest: Path) -> None:
         raise RuntimeError(f"Missing download URL for {dest.name}. Set env var(s).")
 
     headers = {}
-    if HF_TOKEN:
-        headers["Authorization"] = f"Bearer {HF_TOKEN}"
 
     tmp = dest.with_suffix(dest.suffix + ".tmp")
     with requests.get(url, headers=headers, stream=True, timeout=60) as r:
