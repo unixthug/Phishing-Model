@@ -9,7 +9,7 @@ app = FastAPI()
 API_KEY = os.getenv("RISKLENS_API_KEY", "")
 
 train_cols = load_train_cols()
-rf_bundle, _ = load_bundle("rf")
+model_bundle, _ = load_bundle("lgbm")
 
 class UrlInput(BaseModel):
     url: str
@@ -24,7 +24,7 @@ def score(data: UrlInput, x_api_key: str | None = Header(default=None)):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
     verdict, prob, threshold = predict_with_bundle(
-        data.url, rf_bundle, train_cols, suspicious_cutoff=0.20
+        data.url, model_bundle, train_cols, suspicious_cutoff=0.20
     )
 
     return {

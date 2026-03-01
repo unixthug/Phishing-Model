@@ -1,107 +1,146 @@
 # predict.py
-# Usage:
-#   python predict.py --model rf
-#   python predict.py --model lr
-#   python predict.py --both
-#   python predict.py --both --url "https://example.com/login"
-#   python predict.py --both --suspicious 0.30
-
-import argparse
+import os
 import json
+import threading
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
 import joblib
 import pandas as pd
+import requests
 
-from feature import normalize_url, extract_url_features
+from Feature_Extract import extract_features  # :contentReference[oaicite:1]{index=1}
+
+# -------------------------
+# Config (env overridable)
+# -------------------------
+MODELS_DIR = Path(os.getenv("MODELS_DIR", "models"))
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Hugging Face direct-download "resolve" URLs (set these in Render/Docker env)
+MODEL_PKL_URL = os.getenv("MODEL_PKL_URL", "").strip()
+FEATURE_COLS_URL = os.getenv("FEATURE_COLS_URL", "").strip()
+
+# Local filenames (in /models)
+LOCAL_MODEL = MODELS_DIR / os.getenv("LOCAL_MODEL_NAME", "phishing_model.pkl")
+LOCAL_COLS_PKL = MODELS_DIR / os.getenv("LOCAL_COLS_PKL_NAME", "feature_columns.pkl")
+
+# Thresholding
+DEFAULT_THRESHOLD = float(os.getenv("PHISH_THRESHOLD", "0.80"))
+
+# Internal caches
+_lock = threading.Lock()
+_cached_model: Any = None
+_cached_cols: List[str] | None = None
 
 
-def load_train_cols():
-    with open("models/raw_feature_columns.json", "r") as f:
-        cols = json.load(f)
-    if not isinstance(cols, list) or not cols:
-        raise ValueError("models/raw_feature_columns.json is missing or invalid")
-    return cols
+def _download(url: str, dest: Path) -> None:
+    """Download a file to dest (atomic write)."""
+    if not url:
+        raise RuntimeError(f"Missing download URL for {dest.name}. Set env var(s).")
+
+    headers = {}
+    if HF_TOKEN:
+        headers["Authorization"] = f"Bearer {HF_TOKEN}"
+
+    tmp = dest.with_suffix(dest.suffix + ".tmp")
+    with requests.get(url, headers=headers, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        with open(tmp, "wb") as f:
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    f.write(chunk)
+    tmp.replace(dest)
 
 
-def load_bundle(model_choice: str):
-    model_choice = model_choice.lower().strip()
-    if model_choice == "rf":
-        path = "models/phishing_rf_with_threshold.pkl"
-    elif model_choice == "lr":
-        path = "models/phishing_lr_with_threshold.pkl"
-    else:
-        raise ValueError("model must be 'rf' or 'lr'")
-    return joblib.load(path), path
+def _ensure_artifacts_present() -> None:
+    """
+    Ensure model + feature columns exist locally.
+    We accept either feature_columns.pkl or feature_columns.json.
+    """
+    # Model
+    if not LOCAL_MODEL.exists():
+        _download(MODEL_PKL_URL, LOCAL_MODEL)
+
+    # Columns: prefer pkl;
+    if not LOCAL_COLS_PKL.exists()
+        _download(FEATURE_COLS_URL, LOCAL_COLS_PKL)
 
 
-def make_X(url: str, train_cols: list[str]) -> pd.DataFrame:
-    feats = extract_url_features(normalize_url(url))
-    X = pd.DataFrame([feats])
+def load_train_cols() -> List[str]:
+    """
+    Required by server.py.
+    Loads and caches the training column order.
+    """
+    global _cached_cols
+    with _lock:
+        if _cached_cols is not None:
+            return _cached_cols
 
-    # add missing cols expected by the trained model
-    for c in train_cols:
-        if c not in X.columns:
-            X[c] = 0
+        _ensure_artifacts_present()
 
-    # drop extras + enforce training-time order
-    X = X[train_cols]
+        if LOCAL_COLS_PKL.exists():
+            cols = joblib.load(LOCAL_COLS_PKL)
+
+        if not isinstance(cols, list) or not cols or not all(isinstance(c, str) for c in cols):
+            raise ValueError("Feature columns file is invalid (expected a non-empty list[str]).")
+
+        _cached_cols = cols
+        return cols
+
+
+def load_bundle(_model_choice: str) -> Tuple[Dict[str, Any], str]:
+    """
+    Required by server.py.
+    We ignore model_choice and load the single HF-hosted model.
+    Returns a bundle dict + model_path string.
+    """
+    global _cached_model
+    with _lock:
+        if _cached_model is None:
+            _ensure_artifacts_present()
+            _cached_model = joblib.load(LOCAL_MODEL)
+
+        bundle = {
+            "model": _cached_model,
+            "threshold": DEFAULT_THRESHOLD,
+        }
+        return bundle, str(LOCAL_MODEL)
+
+
+def _make_X(url: str, train_cols: List[str]) -> pd.DataFrame:
+    feats = extract_features(url)  # returns dict with 40 feature keys :contentReference[oaicite:2]{index=2}
+    X = pd.DataFrame([feats]).reindex(columns=train_cols, fill_value=0)
     return X
 
 
-def verdict_from_prob(p: float, threshold: float, suspicious_cutoff: float) -> str:
-    if p >= threshold:
-        return "phishing"
-    if p >= suspicious_cutoff:
-        return "suspicious"
-    return "legitimate"
-
-
-def predict_with_bundle(url: str, bundle: dict, train_cols: list[str], suspicious_cutoff: float):
+def predict_with_bundle(
+    url: str,
+    bundle: Dict[str, Any],
+    train_cols: List[str],
+    suspicious_cutoff: float,
+) -> Tuple[str, float, float]:
+    """
+    Required by server.py.
+    Returns: (verdict, probability, threshold)
+    """
     model = bundle["model"]
-    threshold = float(bundle["threshold"])
+    threshold = float(bundle.get("threshold", DEFAULT_THRESHOLD))
 
-    X = make_X(url, train_cols)
-    p = float(model.predict_proba(X)[0, 1])
+    X = _make_X(url, train_cols)
 
-    verdict = verdict_from_prob(p, threshold, suspicious_cutoff)
-    return verdict, p, threshold
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", choices=["rf", "lr"], default="rf", help="Which model to use (ignored if --both)")
-    parser.add_argument("--both", action="store_true", help="Run BOTH rf and lr and print both results")
-    parser.add_argument("--url", default=None, help="URL to classify (if omitted, prompts input)")
-    parser.add_argument("--suspicious", type=float, default=0.20, help="Cutoff for 'suspicious' zone")
-    args = parser.parse_args()
-
-    train_cols = load_train_cols()
-
-    url = args.url
-    if not url:
-        url = input("Enter URL: ").strip()
-
-    if args.both:
-        rf_bundle, rf_path = load_bundle("rf")
-        lr_bundle, lr_path = load_bundle("lr")
-
-        rf_verdict, rf_p, rf_thr = predict_with_bundle(url, rf_bundle, train_cols, args.suspicious)
-        lr_verdict, lr_p, lr_thr = predict_with_bundle(url, lr_bundle, train_cols, args.suspicious)
-
-        print(f"URL: {url}\n")
-
-        print(f"RF  ({rf_path})")
-        print(f"{rf_verdict} | prob={rf_p:.4f} | thr={rf_thr:.2f} | suspicious_cutoff={args.suspicious:.2f}\n")
-
-        print(f"LR  ({lr_path})")
-        print(f"{lr_verdict} | prob={lr_p:.4f} | thr={lr_thr:.2f} | suspicious_cutoff={args.suspicious:.2f}")
-
+    # LightGBM sklearn API supports predict_proba; if not, fall back to predict
+    if hasattr(model, "predict_proba"):
+        prob = float(model.predict_proba(X)[0][1])
     else:
-        bundle, bundle_path = load_bundle(args.model)
-        verdict, p, thr = predict_with_bundle(url, bundle, train_cols, args.suspicious)
+        # Some models output score directly
+        prob = float(model.predict(X)[0])
 
-        print(f"Model: {args.model} ({bundle_path})")
-        print(f"{verdict} | prob={p:.4f} | thr={thr:.2f} | suspicious_cutoff={args.suspicious:.2f}")
+    if prob >= threshold:
+        verdict = "phishing"
+    elif prob >= suspicious_cutoff:
+        verdict = "suspicious"
+    else:
+        verdict = "legitimate"
 
-
-if __name__ == "__main__":
-    main()
+    return verdict, prob, threshold

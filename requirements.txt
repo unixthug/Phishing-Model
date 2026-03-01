@@ -7,4 +7,5 @@ joblib
 requests
 beautifulsoup4
 python-whois
-scikit-learn==1.7.2
+scikit-learn
+lightgbm
