@@ -46,6 +46,27 @@ async function loadState() {
   hostCache = c.hostCache || {};
 }
 
+function buildExplanation(raw) {
+  if (!raw) return [];
+
+  const reasons = [];
+
+  // You can expand this later
+  if (raw?.features) {
+    const f = raw.features;
+
+    if (f.has_ip) reasons.push("Uses IP address instead of domain");
+    if (f.punycode) reasons.push("Uses encoded domain (possible spoofing)");
+    if (f.shortener) reasons.push("Uses URL shortener");
+    if (f.susp_words_host || f.susp_words_path_query)
+      reasons.push("Contains suspicious keywords");
+    if (f.entropy_url > 4) reasons.push("Unusual/random-looking URL");
+    if (f.longest_digit_run > 5) reasons.push("Long digit sequences in URL");
+  }
+
+  return reasons.slice(0, 3); // keep it clean
+}
+
 browser.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
@@ -182,6 +203,16 @@ async function scoreAndCacheHost(urlString) {
 
 async function setStateForTab(tabId, url) {
   const hostEntry = await scoreAndCacheHost(url);
+  const explanations = buildExplanation(hostEntry?.raw);
+  await browser.storage.local.set({
+    [`tab:${tabId}`]: {
+      tabId,
+      url,
+      ...result,
+      explanations, // ✅ ADD THIS
+      updatedAt: now(),
+    },
+  });
 
   const result =
     hostEntry?.score == null

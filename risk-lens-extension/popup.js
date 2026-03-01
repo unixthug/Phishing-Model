@@ -111,6 +111,15 @@ async function init() {
   await loadData();
 }
 
+const list = document.getElementById("explanations");
+list.innerHTML = "";
+
+(data?.explanations || []).forEach((r) => {
+  const li = document.createElement("li");
+  li.textContent = r;
+  list.appendChild(li);
+});
+
 // 🔄 Refresh
 document.getElementById("refreshBtn").addEventListener("click", async () => {
   const tab = await getActiveTab();

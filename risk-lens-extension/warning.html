@@ -1,44 +1,86 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>RiskLens Warning</title>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; background:#0f0f0f; color:#fff; margin:0; }
-    .wrap { max-width: 820px; margin: 60px auto; padding: 24px; }
-    .card { background:#1b1b1b; border:1px solid #333; border-radius:14px; padding:20px; }
-    .muted { color:#b9b9b9; font-size:13px; }
-    .url { word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .btns { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; }
-    button { padding:10px 14px; border-radius:10px; border:1px solid #444; background:#2a2a2a; color:#fff; cursor:pointer; }
-    button.primary { border-color:#d14; }
-    label { display:inline-flex; align-items:center; gap:10px; margin-top:16px; }
-    input[type="checkbox"] { transform: scale(1.2); }
-  </style>
+<meta charset="utf-8">
+<style>
+body {
+  font-family: system-ui;
+  background: #0f172a;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+#card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.danger { color: #ef4444; }
+.sus { color: #facc15; }
+
+button {
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+#safeBtn {
+  background: #22c55e;
+}
+
+#continueBtn {
+  background: #334155;
+}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h2>RiskLens Warning</h2>
-      <p>This website was scored as <strong>dangerous</strong>.</p>
+  <div id="card">
+    <h2 class="danger">⚠️ Potential Phishing Site</h2>
 
-      <p class="muted">Target:</p>
-      <p class="url" id="target"></p>
+    <p id="summary"></p>
 
-      <p class="muted" id="details"></p>
+    <p id="score"></p>
 
-      <div class="btns">
-        <button id="back">Go Back</button>
-        <button class="primary" id="continue">Continue Anyway</button>
-      </div>
+    <ul id="reasons"></ul>
 
-      <label>
-        <input id="disable" type="checkbox" />
-        Disable warnings (re-enable in Options)
-      </label>
-    </div>
+    <button id="safeBtn">Go Back to Safety</button>
+    <button id="continueBtn">Continue Anyway (Not Recommended)</button>
   </div>
 
-  <script src="warning.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+
+const target = params.get("target");
+const score = Number(params.get("score"));
+const verdict = params.get("verdict");
+
+document.getElementById("summary").textContent =
+  verdict === "phishing"
+    ? "This site shows strong signs of phishing."
+    : "This site may be unsafe.";
+
+document.getElementById("score").textContent =
+  `Risk score: ${Math.round(score)}/100`;
+
+document.getElementById("safeBtn").onclick = () => {
+  history.back();
+};
+
+document.getElementById("continueBtn").onclick = () => {
+  browser.runtime.sendMessage({
+    type: "ALLOW_ONCE",
+    url: target
+  }).then(() => {
+    location.href = target;
+  });
+};
+</script>
+
 </body>
 </html>
