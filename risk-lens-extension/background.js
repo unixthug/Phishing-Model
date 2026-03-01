@@ -53,26 +53,18 @@ browser.storage.onChanged.addListener((changes, area) => {
   if (changes.dangerThreshold) settings.dangerThreshold = Number(changes.dangerThreshold.newValue);
   if (changes.bypassDurationMinutes) settings.bypassDurationMinutes = Number(changes.bypassDurationMinutes.newValue);
   if (changes.cacheTtlMinutes) settings.cacheTtlMinutes = Number(changes.cacheTtlMinutes.newValue);
-  if (changes.apiKey) settings.apiKey = String(changes.apiKey.newValue || "");
+
+  if (changes.apiKey) {
+    settings.apiKey = String(changes.apiKey.newValue || "");
+
+    // 🔥 CLEAR CACHE when API key changes
+    hostCache = {};
+    browser.storage.local.set({ hostCache: {} });
+  }
 
   if (changes.allowlist) allowlist = changes.allowlist.newValue || {};
   if (changes.hostCache) hostCache = changes.hostCache.newValue || {};
 });
-
-async function saveAllowlist() { await browser.storage.local.set({ allowlist }); }
-async function saveHostCache() { await browser.storage.local.set({ hostCache }); }
-
-function isAllowlisted(urlString) {
-  const exp = allowlist[urlString];
-  if (exp === 0) return true;
-  if (typeof exp === "number" && exp > now()) return true;
-
-  if (typeof exp === "number" && exp !== 0 && exp <= now()) {
-    delete allowlist[urlString];
-    saveAllowlist().catch(() => {});
-  }
-  return false;
-}
 
 function getCachedForHost(host) {
   const entry = hostCache[host];
@@ -105,8 +97,6 @@ async function fetchModelScore(urlString) {
 
   try {
     const headers = { "Content-Type": "application/json" };
-
-    // ✅ FastAPI x_api_key = Header(...) expects "x-api-key"
     if (apiKey) headers["x-api-key"] = apiKey;
 
     const res = await fetch(API_URL, {
@@ -159,6 +149,19 @@ async function scoreAndCacheHost(urlString) {
   if (cached) return cached;
 
   const r = await fetchModelScore(urlString);
+
+  // DO NOT CACHE failures
+  if (r.score == null) {
+  return {
+    score: null,
+    label: r.label,
+    verdict: r.raw?.verdict,
+    raw: r.raw,
+    reason: r.reason || "",
+    error: r.error || "",
+    updatedAtMs: now(),
+  };
+}
 
   const entry = {
     score: r.score,
