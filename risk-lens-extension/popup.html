@@ -1,50 +1,124 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>RiskLens</title>
   <style>
-    body { font-family: system-ui, Arial, sans-serif; width: 330px; margin: 0; padding: 12px; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-    .title { font-size: 18px; font-weight: 800; margin: 0; }
-    .btn {
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 10px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-size: 14px;
-      line-height: 1;
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      width: 270px;
+      padding: 12px;
+      margin: 0;
+      background: #0f172a;
+      color: #e2e8f0;
     }
-    .btn:hover { background: #f4f4f4; }
-    .muted { color: #666; font-size: 12px; }
-    .pill { display: inline-block; padding: 3px 10px; border: 1px solid #ddd; border-radius: 999px; font-size: 12px; }
-    .row { margin-top: 10px; }
-    .scoreRow { display:flex; align-items:center; gap:10px; }
-    pre { white-space: pre-wrap; background: #f7f7f7; padding: 8px; border-radius: 10px; max-height: 140px; overflow: auto; }
+
+    #card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    #scoreText {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      transition: color 0.3s ease;
+    }
+
+    #labelText {
+      font-size: 14px;
+      opacity: 0.85;
+      margin-bottom: 8px;
+      transition: color 0.3s ease;
+    }
+
+    #barContainer {
+      width: 100%;
+      height: 6px;
+      background: #020617;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    #barFill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      transition: width 0.6s ease, background 0.3s ease;
+    }
+
+    #meta {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-bottom: 8px;
+    }
+
+    .safe { color: #22c55e; }
+    .sus { color: #facc15; }
+    .danger { color: #ef4444; }
+
+    .safe-bg { background: #22c55e; }
+    .sus-bg { background: #facc15; }
+    .danger-bg { background: #ef4444; }
+
+    button {
+      width: 100%;
+      margin-top: 6px;
+      padding: 7px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      background: #334155;
+      color: white;
+    }
+
+    button:hover {
+      background: #475569;
+    }
+
+    #advancedView {
+      margin-top: 10px;
+      font-size: 11px;
+      text-align: left;
+      word-break: break-word;
+    }
+
+    pre {
+      background: #020617;
+      padding: 6px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 10px;
+    }
   </style>
 </head>
+
 <body>
-  <div class="topbar">
-    <div class="title">RiskLens</div>
-    <button id="openOptions" class="btn" title="Open settings">⚙ Options</button>
+
+  <div id="card">
+    <div id="scoreText">--</div>
+    <div id="labelText">Loading...</div>
+
+    <!-- 🔥 Progress bar -->
+    <div id="barContainer">
+      <div id="barFill"></div>
+    </div>
+
+    <div id="meta">--</div>
+
+    <button id="refreshBtn">Refresh Score</button>
+    <button id="toggleAdvanced">Show Advanced</button>
+
+    <div id="advancedView" style="display: none;">
+      <p><strong>Reason:</strong> <span id="reason"></span></p>
+      <p><strong>Error:</strong> <span id="error"></span></p>
+      <pre id="rawJson"></pre>
+    </div>
   </div>
-
-  <div class="muted" id="site">Loading…</div>
-
-  <div class="row scoreRow">
-    <span id="score" style="font-weight:800;">--</span>
-    <span class="pill" id="label">Unknown</span>
-  </div>
-
-  <div class="row muted" id="reason">Loading…</div>
-
-  <div class="row">
-    <button id="refresh" class="btn">Refresh</button>
-  </div>
-
-  <div class="row muted">Raw response (debug)</div>
-  <pre id="raw"></pre>
 
   <script src="popup.js"></script>
 </body>
