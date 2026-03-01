@@ -74,18 +74,9 @@ function scoreToLabel(score) {
 }
 
 const ICONS = {
-  safe: {
-    16: "icons/safe-16.png",
-    32: "icons/safe-32.png"
-  },
-  suspicious: {
-    16: "icons/suspicious-16.png",
-    32: "icons/suspicious-32.png"
-  },
-  danger: {
-    16: "icons/danger-16.png",
-    32: "icons/danger-32.png"
-  }
+  safe: "icons/safe.png",
+  suspicious: "icons/sus.png",
+  danger: "icons/danger.png",
 };
 
 function pickTopReasons(raw) {
