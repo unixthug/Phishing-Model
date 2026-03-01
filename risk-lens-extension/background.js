@@ -35,6 +35,28 @@ function now() { return Date.now(); }
 function isHttpUrl(url) { return url.startsWith("http://") || url.startsWith("https://"); }
 function hostnameOf(urlString) { try { return new URL(urlString).hostname; } catch { return null; } }
 
+async function saveHostCache() {
+  await browser.storage.local.set({ hostCache });
+}
+
+async function saveAllowlist() {
+  await browser.storage.local.set({ allowlist });
+}
+
+function isAllowlisted(url) {
+  const expiresAt = allowlist[url];
+  if (expiresAt == null) return false;
+
+  if (expiresAt === 0) return true; // never expires
+
+  if (typeof expiresAt === "number" && expiresAt > now()) return true;
+
+  // expired / invalid -> cleanup
+  delete allowlist[url];
+  saveAllowlist().catch(() => {});
+  return false;
+}
+
 async function loadState() {
   const s = await browser.storage.local.get(DEFAULTS);
   settings = { ...DEFAULTS, ...s };
@@ -51,7 +73,8 @@ function buildExplanation(raw) {
 
   const reasons = [];
 
-  // You can expand this later
+  // NOTE: your API currently does NOT return `features`,
+  // so this will stay empty unless you add it server-side.
   if (raw?.features) {
     const f = raw.features;
 
@@ -64,7 +87,7 @@ function buildExplanation(raw) {
     if (f.longest_digit_run > 5) reasons.push("Long digit sequences in URL");
   }
 
-  return reasons.slice(0, 3); // keep it clean
+  return reasons.slice(0, 3);
 }
 
 browser.storage.onChanged.addListener((changes, area) => {
@@ -78,7 +101,7 @@ browser.storage.onChanged.addListener((changes, area) => {
   if (changes.apiKey) {
     settings.apiKey = String(changes.apiKey.newValue || "");
 
-    // 🔥 CLEAR CACHE when API key changes
+    // CLEAR CACHE when API key changes
     hostCache = {};
     browser.storage.local.set({ hostCache: {} });
   }
@@ -110,7 +133,7 @@ async function fetchModelScore(urlString) {
     return { score: null, label: "safe", reason: "Not a web page" };
   }
 
-  // ✅ ALWAYS pull key at request time (prevents startup race)
+  // Always pull key at request time (prevents startup race)
   const { apiKey } = await browser.storage.local.get({ apiKey: "" });
 
   const controller = new AbortController();
@@ -171,18 +194,18 @@ async function scoreAndCacheHost(urlString) {
 
   const r = await fetchModelScore(urlString);
 
-  // DO NOT CACHE failures
+  // Do NOT cache failures
   if (r.score == null) {
-  return {
-    score: null,
-    label: r.label,
-    verdict: r.raw?.verdict,
-    raw: r.raw,
-    reason: r.reason || "",
-    error: r.error || "",
-    updatedAtMs: now(),
-  };
-}
+    return {
+      score: null,
+      label: r.label,
+      verdict: r.raw?.verdict,
+      raw: r.raw,
+      reason: r.reason || "",
+      error: r.error || "",
+      updatedAtMs: now(),
+    };
+  }
 
   const entry = {
     score: r.score,
@@ -193,11 +216,9 @@ async function scoreAndCacheHost(urlString) {
     error: r.error || "",
     updatedAtMs: now(),
   };
-  if (entry.score != null) {
-    hostCache[host] = entry;
-    await saveHostCache();
-  }
 
+  hostCache[host] = entry;
+  await saveHostCache();
   return entry;
 }
 
@@ -206,15 +227,6 @@ async function scoreAndCacheHost(urlString) {
 async function setStateForTab(tabId, url) {
   const hostEntry = await scoreAndCacheHost(url);
   const explanations = buildExplanation(hostEntry?.raw);
-  await browser.storage.local.set({
-    [`tab:${tabId}`]: {
-      tabId,
-      url,
-      ...result,
-      explanations, // ✅ ADD THIS
-      updatedAt: now(),
-    },
-  });
 
   const result =
     hostEntry?.score == null
@@ -233,7 +245,7 @@ async function setStateForTab(tabId, url) {
         };
 
   await browser.storage.local.set({
-    [`tab:${tabId}`]: { tabId, url, ...result, updatedAt: now() },
+    [`tab:${tabId}`]: { tabId, url, ...result, explanations, updatedAt: now() },
   });
 
   await browser.browserAction.setIcon({
@@ -288,6 +300,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
     } else {
       allowlist[msg.url] = now() + minutes * 60_000;
     }
+
     await saveAllowlist();
     return;
   }

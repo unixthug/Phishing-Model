@@ -15,7 +15,7 @@ echo "Downloading model..."
 curl -L -f ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$MODEL_PKL_URL" -o /app/models/phishing_model.pkl
 
 echo "Downloading feature columns..."
-curl -L -f ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$FEATURE_COLS_PKL_URL" -o /app/models/feature_columns.pkl
+curl -L -f ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$FEATURE_COLS_URL" -o /app/models/feature_columns.pkl
 
 test -s /app/models/phishing_model.pkl
 test -s /app/models/feature_columns.pkl

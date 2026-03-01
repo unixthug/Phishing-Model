@@ -21,7 +21,7 @@ async function getActiveTab() {
   return tab;
 }
 
-// 🔥 Smooth count-up animation
+// Smooth count-up animation
 function animateScore(el, target) {
   let current = 0;
   const duration = 400;
@@ -56,7 +56,7 @@ async function loadData() {
   if (data?.score != null) {
     const score = Math.round(data.score);
 
-    // 🔥 Animate score
+    // Animate score
     animateScore(scoreEl, score);
 
     const cls = scoreToClass(score);
@@ -66,10 +66,9 @@ async function loadData() {
 
     labelEl.textContent = data.label;
 
-    // 🔥 Animate bar
+    // Animate bar
     bar.style.width = `${score}%`;
     bar.className = `${cls}-bg`;
-
   } else {
     scoreEl.textContent = "--";
     labelEl.textContent = "No score";
@@ -78,13 +77,21 @@ async function loadData() {
 
   const age = timeAgo(data?.updatedAt);
   const isFresh = age === "just now" || age.includes("s");
-
   metaEl.textContent = `${isFresh ? "⚡ fresh" : "🕒 cached"} • ${age}`;
 
   document.getElementById("reason").textContent = data?.reason || "";
   document.getElementById("error").textContent = data?.error || "";
   document.getElementById("rawJson").textContent =
     data?.raw ? JSON.stringify(data.raw, null, 2) : "";
+
+  // Explanations (Why flagged)
+  const list = document.getElementById("explanations");
+  list.innerHTML = "";
+  (data?.explanations || []).forEach((r) => {
+    const li = document.createElement("li");
+    li.textContent = r;
+    list.appendChild(li);
+  });
 }
 
 function updateView() {
@@ -111,16 +118,7 @@ async function init() {
   await loadData();
 }
 
-const list = document.getElementById("explanations");
-list.innerHTML = "";
-
-(data?.explanations || []).forEach((r) => {
-  const li = document.createElement("li");
-  li.textContent = r;
-  list.appendChild(li);
-});
-
-// 🔄 Refresh
+// Refresh
 document.getElementById("refreshBtn").addEventListener("click", async () => {
   const tab = await getActiveTab();
   if (!tab?.id) return;
@@ -129,11 +127,13 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
   btn.disabled = true;
   btn.textContent = "Refreshing...";
 
+  // background.js listens for SCORE_TAB_NOW
   await browser.runtime.sendMessage({
-    type: "FORCE_REFRESH",
+    type: "SCORE_TAB_NOW",
     tabId: tab.id,
   });
 
+  // give background a moment to store tab state
   setTimeout(async () => {
     await loadData();
     btn.disabled = false;
@@ -141,7 +141,7 @@ document.getElementById("refreshBtn").addEventListener("click", async () => {
   }, 700);
 });
 
-// 🔽 Toggle advanced
+// Toggle advanced
 document.getElementById("toggleAdvanced").addEventListener("click", async () => {
   showAdvanced = !showAdvanced;
 

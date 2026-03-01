@@ -1,6 +1,5 @@
 # predict.py
 import os
-import json
 import threading
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -9,7 +8,7 @@ import joblib
 import pandas as pd
 import requests
 
-from Feature_Extract import extract_features  # :contentReference[oaicite:1]{index=1}
+from Feature_Extract import extract_features
 
 # -------------------------
 # Config (env overridable)
@@ -17,7 +16,7 @@ from Feature_Extract import extract_features  # :contentReference[oaicite:1]{ind
 MODELS_DIR = Path(os.getenv("MODELS_DIR", "models"))
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Hugging Face direct-download "resolve" URLs (set these in Render/Docker env)
+# Direct-download URLs (set these in Render/Docker env)
 MODEL_PKL_URL = os.getenv("MODEL_PKL_URL", "").strip()
 FEATURE_COLS_URL = os.getenv("FEATURE_COLS_URL", "").strip()
 
@@ -37,12 +36,12 @@ _cached_cols: List[str] | None = None
 def _download(url: str, dest: Path) -> None:
     """Download a file to dest (atomic write)."""
     if not url:
-        raise RuntimeError(f"Missing download URL for {dest.name}. Set env var(s).")
-
-    headers = {}
+        raise RuntimeError(
+            f"Missing download URL for {dest.name}. Set MODEL_PKL_URL / FEATURE_COLS_URL env var(s)."
+        )
 
     tmp = dest.with_suffix(dest.suffix + ".tmp")
-    with requests.get(url, headers=headers, stream=True, timeout=60) as r:
+    with requests.get(url, stream=True, timeout=60) as r:
         r.raise_for_status()
         with open(tmp, "wb") as f:
             for chunk in r.iter_content(chunk_size=1024 * 1024):
@@ -52,24 +51,18 @@ def _download(url: str, dest: Path) -> None:
 
 
 def _ensure_artifacts_present() -> None:
-    """
-    Ensure model + feature columns exist locally.
-    We accept either feature_columns.pkl or feature_columns.json.
-    """
+    """Ensure model + feature columns exist locally."""
     # Model
     if not LOCAL_MODEL.exists():
         _download(MODEL_PKL_URL, LOCAL_MODEL)
 
-    # Columns: prefer pkl;
-    if not LOCAL_COLS_PKL.exists()
+    # Columns
+    if not LOCAL_COLS_PKL.exists():
         _download(FEATURE_COLS_URL, LOCAL_COLS_PKL)
 
 
 def load_train_cols() -> List[str]:
-    """
-    Required by server.py.
-    Loads and caches the training column order.
-    """
+    """Required by server.py. Loads and caches the training column order."""
     global _cached_cols
     with _lock:
         if _cached_cols is not None:
@@ -77,6 +70,7 @@ def load_train_cols() -> List[str]:
 
         _ensure_artifacts_present()
 
+        cols: Any = None
         if LOCAL_COLS_PKL.exists():
             cols = joblib.load(LOCAL_COLS_PKL)
 
@@ -90,7 +84,7 @@ def load_train_cols() -> List[str]:
 def load_bundle(_model_choice: str) -> Tuple[Dict[str, Any], str]:
     """
     Required by server.py.
-    We ignore model_choice and load the single HF-hosted model.
+    We ignore model_choice and load the single hosted model.
     Returns a bundle dict + model_path string.
     """
     global _cached_model
@@ -107,7 +101,7 @@ def load_bundle(_model_choice: str) -> Tuple[Dict[str, Any], str]:
 
 
 def _make_X(url: str, train_cols: List[str]) -> pd.DataFrame:
-    feats = extract_features(url)  # returns dict with 40 feature keys :contentReference[oaicite:2]{index=2}
+    feats = extract_features(url)  # returns dict
     X = pd.DataFrame([feats]).reindex(columns=train_cols, fill_value=0)
     return X
 
@@ -118,20 +112,15 @@ def predict_with_bundle(
     train_cols: List[str],
     suspicious_cutoff: float,
 ) -> Tuple[str, float, float]:
-    """
-    Required by server.py.
-    Returns: (verdict, probability, threshold)
-    """
+    """Required by server.py. Returns: (verdict, probability, threshold)"""
     model = bundle["model"]
     threshold = float(bundle.get("threshold", DEFAULT_THRESHOLD))
 
     X = _make_X(url, train_cols)
 
-    # LightGBM sklearn API supports predict_proba; if not, fall back to predict
     if hasattr(model, "predict_proba"):
         prob = float(model.predict_proba(X)[0][1])
     else:
-        # Some models output score directly
         prob = float(model.predict(X)[0])
 
     if prob >= threshold:
