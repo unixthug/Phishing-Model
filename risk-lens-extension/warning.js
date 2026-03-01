@@ -8,10 +8,11 @@ function qp(name) {
   const score = qp("score");
   const verdict = qp("verdict");
 
-  document.getElementById("target").textContent = target;
+  document.getElementById("target").textContent = target || "Unknown URL";
   document.getElementById("details").textContent =
-    `Score: ${score ?? "?"} / 100` + (verdict ? ` • Verdict: ${verdict}` : "");
+    `Score: ${score ?? "?"}/100` + (verdict ? ` · Verdict: ${verdict}` : "");
 
+  /* Sync checkbox with current blocking state */
   const cfg = await browser.storage.local.get({ blockingEnabled: true });
   document.getElementById("disable").checked = !cfg.blockingEnabled;
 
@@ -23,7 +24,9 @@ function qp(name) {
     if (browser?.runtime?.openOptionsPage) {
       await browser.runtime.openOptionsPage();
     } else {
-      await browser.tabs.create({ url: browser.runtime.getURL("options.html") });
+      await browser.tabs.create({
+        url: browser.runtime.getURL("options.html"),
+      });
     }
   });
 
@@ -33,9 +36,14 @@ function qp(name) {
 
   document.getElementById("continue").addEventListener("click", async () => {
     let host = "";
-    try { host = new URL(target).hostname; } catch {}
-    await browser.runtime.sendMessage({ type: "ALLOW_ONCE", url: target, host });
-    // replace() avoids back-button loops where the warning page stays in history
+    try {
+      host = new URL(target).hostname;
+    } catch {}
+    await browser.runtime.sendMessage({
+      type: "ALLOW_ONCE",
+      url: target,
+      host,
+    });
     location.replace(target);
   });
 })();

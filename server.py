@@ -14,7 +14,7 @@ CORS(app)
 MODEL_PATH = os.environ.get("MODEL_PATH", "/app/models/phishing_model.pkl")
 FEATURE_COLS_PATH = os.environ.get("FEATURE_COLS_PATH", "/app/models/feature_columns.pkl")
 
-# Thresholds
+# Thresholds (server-side, not user-configurable)
 PHISH_THRESHOLD = float(os.environ.get("PHISH_THRESHOLD", "0.80"))
 SUSPICIOUS_CUTOFF = float(os.environ.get("SUSPICIOUS_CUTOFF", "0.50"))
 
@@ -52,7 +52,7 @@ def explain_from_features(feats: Dict[str, Any]) -> List[str]:
         if float(feats.get("url_len", 0)) > 75:
             reasons.append("Unusually long URL")
         if int(feats.get("has_at_symbol", 0)) == 1 or int(feats.get("userinfo", 0)) == 1:
-            reasons.append("Contains @ / userinfo")
+            reasons.append("Contains @ symbol or userinfo")
         if int(feats.get("many_subdomains", 0)) == 1 or int(feats.get("subdomain_labels", 0)) >= 2:
             reasons.append("Excessive subdomains")
         if int(feats.get("is_https", 0)) == 0:
@@ -60,15 +60,19 @@ def explain_from_features(feats: Dict[str, Any]) -> List[str]:
         if int(feats.get("has_ip", 0)) == 1:
             reasons.append("Uses IP address instead of domain")
         if int(feats.get("shortener", 0)) == 1:
-            reasons.append("URL shortener")
+            reasons.append("URL shortener detected")
         if int(feats.get("punycode", 0)) == 1:
-            reasons.append("Punycode domain (possible homograph)")
+            reasons.append("Punycode domain (possible homograph attack)")
         if int(feats.get("suspicious_ext", 0)) == 1:
-            reasons.append("Suspicious file extension")
+            reasons.append("Suspicious file extension in URL")
         if int(feats.get("pct_encoding", 0)) >= 3:
-            reasons.append("Heavy URL encoding")
+            reasons.append("Heavy percent-encoding in URL")
         if int(feats.get("brand_in_url", 0)) == 1 and int(feats.get("brand_in_host", 0)) == 0:
-            reasons.append("Brand name in URL path/query")
+            reasons.append("Brand name in URL path but not in hostname")
+        if int(feats.get("prefix_suffix_sld", 0)) == 1:
+            reasons.append("Hyphen/underscore in second-level domain")
+        if float(feats.get("digit_ratio", 0)) > 0.3:
+            reasons.append("High ratio of digits in hostname")
     except Exception:
         pass
 
@@ -82,10 +86,12 @@ def score():
     if not data or "url" not in data:
         return jsonify({"error": "Missing URL"}), 400
 
-    url = str(data["url"])
+    url = str(data["url"]).strip()
+    if not url:
+        return jsonify({"error": "Empty URL"}), 400
 
     try:
-        feats = extract_features(url)  # dict
+        feats = extract_features(url)
         X = pd.DataFrame([feats]).reindex(columns=get_train_cols(), fill_value=0)
 
         model = get_model()
@@ -122,7 +128,7 @@ def score():
 
 @app.route("/")
 def home():
-    return jsonify({"status": "RiskLens API running"})
+    return jsonify({"status": "RiskLens API running", "version": "0.4.0"})
 
 
 @app.route("/health", methods=["GET"])

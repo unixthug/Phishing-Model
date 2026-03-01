@@ -5,184 +5,165 @@
   <title>RiskLens — Unsafe Site Warning</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{
+    :root {
       --bg: #0b1220;
       --card: #0f172a;
-      --border: rgba(148,163,184,.16);
-      --muted: rgba(226,232,240,.75);
+      --border: rgba(148,163,184,.14);
+      --muted: rgba(226,232,240,.65);
       --text: #e2e8f0;
 
-      --danger: #ef4444;
-      --danger2: rgba(239,68,68,.12);
+      --red: #EF4444;
+      --redDim: rgba(239,68,68,.12);
+      --green: #65CB00;
+      --greenDim: rgba(101,203,0,.12);
 
-      --safe: #22c55e;
       --btn: #1f2937;
-      --btn2: #111827;
-
       --shadow: 0 20px 60px rgba(0,0,0,.55);
       --radius: 16px;
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; }
+
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(900px 500px at 15% 10%, rgba(239,68,68,.12), transparent 60%),
-                  radial-gradient(900px 500px at 85% 15%, rgba(148,163,184,.09), transparent 55%),
-                  var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+      background:
+        radial-gradient(800px 450px at 15% 10%, rgba(239,68,68,.10), transparent 60%),
+        radial-gradient(800px 450px at 85% 15%, rgba(148,163,184,.06), transparent 55%),
+        var(--bg);
       color: var(--text);
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 22px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
     }
 
     .wrap {
-      width: 860px;
-      max-width: 100%;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
+      width: 720px; max-width: 100%;
     }
 
     .card {
-      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(15,23,42,.88));
+      background: linear-gradient(180deg, rgba(15,23,42,.98), rgba(15,23,42,.90));
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       overflow: hidden;
     }
 
+    /* ── Header ── */
     .top {
-      display: flex;
-      gap: 14px;
-      padding: 18px 18px 14px 18px;
+      display: flex; gap: 14px;
+      padding: 20px 20px 16px;
       align-items: flex-start;
       border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(239,68,68,.10), transparent);
+      background: linear-gradient(180deg, rgba(239,68,68,.08), transparent);
     }
 
     .badge {
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
       border-radius: 12px;
-      display: grid;
-      place-items: center;
-      background: var(--danger2);
-      border: 1px solid rgba(239,68,68,.25);
-      flex: 0 0 auto;
+      display: grid; place-items: center;
+      background: var(--redDim);
+      border: 1px solid rgba(239,68,68,.22);
+      flex-shrink: 0;
     }
-
-    .badge svg { width: 22px; height: 22px; fill: var(--danger); }
+    .badge svg { width: 22px; height: 22px; fill: var(--red); }
 
     h1 {
-      margin: 0;
-      font-size: 18px;
-      line-height: 1.25;
-      letter-spacing: .2px;
+      font-size: 18px; font-weight: 800;
+      line-height: 1.25; letter-spacing: .1px;
     }
 
     .sub {
-      margin: 6px 0 0 0;
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.4;
+      margin-top: 6px;
+      font-size: 13px; color: var(--muted);
+      line-height: 1.45;
     }
 
+    /* ── Content ── */
     .content {
-      padding: 16px 18px 18px 18px;
-      display: grid;
-      gap: 12px;
+      padding: 18px 20px 20px;
+      display: grid; gap: 14px;
     }
 
     .info {
-      background: rgba(2,6,23,.45);
+      background: rgba(2,6,23,.40);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 12px 12px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .row {
-      display: grid;
-      gap: 6px;
+      padding: 14px;
+      display: grid; gap: 8px;
     }
 
     .label {
-      font-size: 12px;
-      color: rgba(226,232,240,.70);
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--muted);
     }
 
     #target {
-      font-size: 14px;
-      font-weight: 650;
-      word-break: break-word;
-      color: #fff;
+      font-size: 14px; font-weight: 700;
+      word-break: break-all;
+      color: #fff; line-height: 1.35;
     }
 
     #details {
-      font-size: 12px;
-      color: rgba(226,232,240,.70);
+      font-size: 12.5px; color: var(--muted);
       word-break: break-word;
     }
 
     .hint {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.45;
+      font-size: 13px; color: var(--muted);
+      line-height: 1.5;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
     }
 
+    /* ── Actions ── */
     .actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 2px;
     }
 
     button {
       appearance: none;
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 11px 12px;
-      background: linear-gradient(180deg, rgba(31,41,55,.95), rgba(17,24,39,.95));
-      color: #fff;
-      font-weight: 650;
+      padding: 12px 14px;
+      font-weight: 700; font-size: 13px;
       cursor: pointer;
-      transition: transform .06s ease, filter .15s ease, border-color .15s ease;
+      transition: transform 60ms ease, filter 150ms ease, border-color 150ms ease;
     }
-    button:hover { filter: brightness(1.06); border-color: rgba(148,163,184,.24); }
+    button:hover { filter: brightness(1.08); }
     button:active { transform: translateY(1px); }
 
     #back {
-      background: linear-gradient(180deg, rgba(34,197,94,.95), rgba(22,163,74,.95));
-      border-color: rgba(34,197,94,.35);
-      color: #07110a;
+      background: linear-gradient(180deg, var(--green), #52a800);
+      border-color: rgba(101,203,0,.30);
+      color: #071100;
     }
 
     #continue {
-      background: linear-gradient(180deg, rgba(239,68,68,.95), rgba(220,38,38,.95));
-      border-color: rgba(239,68,68,.38);
+      background: linear-gradient(180deg, rgba(239,68,68,.90), rgba(220,38,38,.90));
+      border-color: rgba(239,68,68,.30);
+      color: #fff;
     }
 
+    /* ── Footer ── */
     .footer {
-      display: flex;
-      align-items: center;
+      display: flex; align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 6px;
-      padding-top: 10px;
+      gap: 10px; flex-wrap: wrap;
+      margin-top: 4px;
+      padding-top: 12px;
       border-top: 1px solid var(--border);
     }
 
     .toggle {
-      display: inline-flex;
-      gap: 10px;
+      display: inline-flex; gap: 10px;
       align-items: center;
       font-size: 13px;
-      color: rgba(226,232,240,.84);
+      color: var(--muted);
       user-select: none;
     }
 
@@ -191,16 +172,14 @@
     .ghost {
       background: transparent;
       border: 1px solid var(--border);
-      color: rgba(226,232,240,.92);
+      color: var(--muted);
       font-weight: 600;
-      padding: 9px 11px;
+      padding: 9px 14px;
       border-radius: 12px;
     }
+    .ghost:hover { color: var(--text); border-color: rgba(148,163,184,.24); }
 
-    .ghost:hover { filter: brightness(1.05); }
-
-    /* small screens */
-    @media (max-width: 640px) {
+    @media (max-width: 600px) {
       .actions { grid-template-columns: 1fr; }
     }
   </style>
@@ -219,36 +198,33 @@
           <h1>This site may be unsafe</h1>
           <p class="sub">
             RiskLens detected patterns consistent with phishing or malicious behavior.
-            If you continue, do not enter passwords or payment information.
+            If you proceed, do not enter passwords or payment information.
           </p>
         </div>
       </div>
 
       <div class="content">
         <div class="info">
-          <div class="row">
-            <div class="label">Blocked URL</div>
-            <div id="target">Loading…</div>
-            <div id="details"></div>
-          </div>
+          <div class="label">Blocked URL</div>
+          <div id="target">Loading…</div>
+          <div id="details"></div>
         </div>
 
         <div class="hint">
-          Tip: If this is a login portal you trust, verify the domain spelling and the HTTPS lock icon.
-          Phishing pages often use look-alike domains.
+          <strong>Tip:</strong> Verify the domain spelling and HTTPS lock icon before trusting any login page.
+          Phishing pages often use look-alike domains with subtle misspellings.
         </div>
 
         <div class="actions">
-          <button id="back">Go Back (Recommended)</button>
-          <button id="continue">Continue Anyway</button>
+          <button id="back">← Go Back (Recommended)</button>
+          <button id="continue">Continue Anyway →</button>
         </div>
 
         <div class="footer">
           <label class="toggle">
             <input id="disable" type="checkbox" />
-            Disable blocking (don’t show this warning)
+            Disable blocking (stop showing warnings)
           </label>
-
           <button id="optionsBtn" class="ghost">Settings</button>
         </div>
       </div>
