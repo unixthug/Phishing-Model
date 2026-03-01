@@ -13,7 +13,13 @@ MODEL_PATH = os.environ.get(
     "MODEL_PATH",
     "/app/models/phishing_model.pkl"
 )
-model = joblib.load(MODEL_PATH)
+model = None
+
+def get_model():
+    global model
+    if model is None:
+        model = joblib.load(MODEL_PATH)
+    return model
 
 
 # -----------------------------
@@ -57,7 +63,7 @@ def score():
 
     try:
         features = extract_features(url)
-        probability = model.predict_proba([features])[0][1]
+        probability = get_model().predict_proba([features])[0][1]
         risk_score = convert_to_risk(probability)
 
         # Simple explanation logic (kept lightweight)
@@ -92,6 +98,9 @@ def score():
 def home():
     return jsonify({"status": "RiskLens API running"})
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"ok": True}), 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
