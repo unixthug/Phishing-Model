@@ -9,7 +9,10 @@ app = Flask(__name__)
 CORS(app)
 
 # Load trained model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "phishing_model.pkl")
+MODEL_PATH = os.environ.get(
+    "MODEL_PATH",
+    "/app/models/phishing_model.pkl"
+)
 model = joblib.load(MODEL_PATH)
 
 

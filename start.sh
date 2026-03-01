@@ -20,4 +20,4 @@ curl -L -f ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$FEATURE_COLS_URL" -o /app/models/
 test -s /app/models/phishing_model.pkl
 test -s /app/models/feature_columns.pkl
 
-exec uvicorn server:app --host 0.0.0.0 --port "${PORT:-8000}"
+exec gunicorn server:app --bind 0.0.0.0:"${PORT:-8000}" --workers 2 --timeout 120

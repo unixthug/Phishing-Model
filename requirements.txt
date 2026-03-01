@@ -1,12 +1,11 @@
-fastapi
-uvicorn[standard]
-pydantic
+flask
+flask-cors
+gunicorn
+
 pandas
 numpy
 joblib
 requests
-beautifulsoup4
-python-whois
+
 scikit-learn
-flask
 lightgbm
