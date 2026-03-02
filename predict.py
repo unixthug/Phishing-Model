@@ -212,33 +212,27 @@ def predict_with_bundle(
     train_cols: List[str],
     suspicious_cutoff: float,
 ) -> Tuple[str, float, float]:
-    """
-    Required by server.py. Returns: (verdict, probability, threshold)
 
-    Backend policy additions:
-      - Never flag Google searches
-      - Flag Discord invites only
-      - Never flag owned hostnames (e.g., your GitHub Pages site)
-    """
+    # Get threshold once (for consistent returns)
+    threshold = float(bundle.get("threshold", DEFAULT_THRESHOLD))
+
     # ✅ 1) Never flag Google searches (period)
     if is_google_search_related(url):
-        return "legitimate", 0.0, float(bundle.get("threshold", DEFAULT_THRESHOLD))
+        print("[BYPASS] google_search_related:", url)
+        return "legitimate", 0.0, threshold
 
     # ✅ 2) Never flag your own site(s)
     if is_owned_host(url):
-        return "legitimate", 0.0, float(bundle.get("threshold", DEFAULT_THRESHOLD))
+        print("[BYPASS] owned_host:", url)
+        return "legitimate", 0.0, threshold
 
     # ✅ 3) Flag Discord invites only (no model needed)
     if is_discord_invite(url):
-        threshold = float(bundle.get("threshold", DEFAULT_THRESHOLD))
-        # Return a high probability so it is always treated as flagged by UI
-        prob = 0.99
-        verdict = DISCORD_INVITE_VERDICT  # "suspicious" by default
-        return verdict, prob, threshold
+        print("[RULE] discord_invite:", url)
+        return DISCORD_INVITE_VERDICT, 0.99, threshold
 
     # ---- Normal ML pipeline below ----
     model = bundle["model"]
-    threshold = float(bundle.get("threshold", DEFAULT_THRESHOLD))
 
     X = _make_X(url, train_cols)
 
@@ -255,4 +249,3 @@ def predict_with_bundle(
         verdict = "legitimate"
 
     return verdict, prob, threshold
-
