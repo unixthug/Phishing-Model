@@ -10,6 +10,23 @@ SHORTENING_SERVICES = {'bit.ly', 'goo.gl', 'tinyurl.com', 'ow.ly', 't.co'}
 SUSPICIOUS_WORDS = {'login', 'signin', 'verify', 'account', 'update', 'password', 'billing', 'invoice'}
 BRAND_NAMES = {'google', 'facebook', 'amazon', 'apple', 'microsoft', 'paypal', 'netflix', 'instagram'}
 SUSPICIOUS_EXTENSIONS = {'.exe', '.zip', '.rar', '.js', '.php', '.scr', '.bat'}
+TRUSTED_DOMAINS = {
+    "github.com",
+    "gitlab.com",
+    "bitbucket.org",
+    "stackoverflow.com",
+    "microsoft.com",
+    "google.com"
+}
+
+def is_trusted_domain(url):
+    try:
+        host = urlparse(url).hostname
+        if host:
+            return 1 if host.lower() in TRUSTED_DOMAINS else 0
+        return 0
+    except:
+        return 0
 
 # ---- URL normalization ----
 def normalize_url(url: str) -> str:
@@ -251,5 +268,6 @@ def extract_features(url: str) -> dict:
 
         # port can be None; safely coerce to 0
         "port": int(p.port or 0),
+        "trusted_domain": is_trusted_domain(url),
     }
     return feats
