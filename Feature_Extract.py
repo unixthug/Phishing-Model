@@ -22,9 +22,17 @@ TRUSTED_DOMAINS = {
 def is_trusted_domain(url):
     try:
         host = urlparse(url).hostname
-        if host:
-            return 1 if host.lower() in TRUSTED_DOMAINS else 0
+        if not host:
+            return 0
+
+        host = host.lower()
+
+        for domain in TRUSTED_DOMAINS:
+            if host == domain or host.endswith("." + domain):
+                return 1
+
         return 0
+
     except:
         return 0
 
