@@ -6,34 +6,66 @@ import math
 import numpy as np
 
 SHORTENING_SERVICES = {'bit.ly', 'goo.gl', 'tinyurl.com', 'ow.ly', 't.co'}
-# NOTE: removed overly-benign words like "secure" to reduce false positives
+
+# keep login-ish terms; we handle false positives using contextual features below
 SUSPICIOUS_WORDS = {'login', 'signin', 'verify', 'account', 'update', 'password', 'billing', 'invoice'}
+
 BRAND_NAMES = {'google', 'facebook', 'amazon', 'apple', 'microsoft', 'paypal', 'netflix', 'instagram'}
+
 SUSPICIOUS_EXTENSIONS = {'.exe', '.zip', '.rar', '.js', '.php', '.scr', '.bat'}
+
+# Domains you generally trust as "owned by the real org"
+# (NOT an auto-allow; it's a feature used by ML / policy.)
 TRUSTED_DOMAINS = {
     "github.com",
+    "github.io",          # GitHub Pages base domain
     "gitlab.com",
     "bitbucket.org",
     "stackoverflow.com",
     "microsoft.com",
-    "google.com"
+    "google.com",
 }
 
-def is_trusted_domain(url):
+# Trusted platforms that commonly host user-controlled content (higher abuse risk)
+TRUSTED_HOSTING_PATTERNS = [
+    r"(^|\.)github\.io$",
+    r"(^|\.)sites\.google\.com$",
+    r"(^|\.)docs\.google\.com$",
+    r"(^|\.)forms\.google\.com$",
+    r"(^|\.)storage\.googleapis\.com$",
+    r"(^|\.)vercel\.app$",
+    r"(^|\.)netlify\.app$",
+    r"(^|\.)pages\.dev$",
+]
+
+# OAuth/SSO patterns to reduce auth false positives (scales beyond hardcoded providers)
+AUTH_FLOW_TERMS = {
+    "oauth", "authorize", "token", "auth", "sso", "session",
+    "redirect_uri", "response_type", "client_id", "scope", "state",
+    "code_challenge", "code_verifier", "nonce", "saml", "openid", "oidc",
+    "continue", "returnurl", "callback"
+}
+
+# Optional: your own deployed site(s) (small list of what YOU own)
+OWNED_SITES = {
+    "eli-69.github.io",
+}
+
+def is_trusted_domain(url: str) -> int:
+    """
+    1 if hostname equals a trusted domain or is a subdomain of it.
+    Avoids substring tricks like google.com.evil.ru.
+    """
     try:
         host = urlparse(url).hostname
         if not host:
             return 0
-
         host = host.lower()
-
         for domain in TRUSTED_DOMAINS:
             if host == domain or host.endswith("." + domain):
                 return 1
-
         return 0
-
-    except:
+    except Exception:
         return 0
 
 # ---- URL normalization ----
@@ -86,7 +118,7 @@ def subdomain_label_count(url: str) -> int:
     if not h:
         return 0
     labels = h.split(".")
-    # labels above registrable domain approx = total - 2 (naive; PSL-aware would be better)
+    # naive; PSL-aware would be better, but OK for now
     return max(0, len(labels) - 2)
 
 def has_many_subdomains(url: str) -> int:
@@ -212,11 +244,63 @@ def max_param_key_len(url: str) -> int:
         return 0
     return int(max(len(k) for k in keys))
 
+# ---- Context features to reduce false positives ----
+def trusted_but_hosting(url: str) -> int:
+    h = hostname(url)
+    for pat in TRUSTED_HOSTING_PATTERNS:
+        if re.search(pat, h):
+            return 1
+    return 0
+
+def google_search_related(url: str) -> int:
+    """
+    1 for Google search results and Google redirect endpoints used when clicking search results.
+    Use this in your backend to bypass scanning entirely if you want 'never flag google searches'.
+    """
+    p = urlparse(url)
+    h = (p.hostname or "").lower()
+    if not (h == "www.google.com" or h.endswith(".google.com")):
+        return 0
+    path = (p.path or "").lower()
+    if path == "/search" or path.startswith("/search"):
+        return 1
+    if path in {"/url", "/imgres"}:
+        return 1
+    return 0
+
+def auth_like_flow(url: str) -> int:
+    p = urlparse(url)
+    blob = ((p.path or "") + "?" + (p.query or "")).lower()
+
+    for t in AUTH_FLOW_TERMS:
+        if t in blob:
+            return 1
+
+    qs = parse_qs(p.query)
+    for k in qs.keys():
+        if k.lower() in AUTH_FLOW_TERMS:
+            return 1
+
+    return 0
+
+def is_owned_site(url: str) -> int:
+    return 1 if hostname(url) in OWNED_SITES else 0
+
+def owned_site_path_ok(url: str) -> int:
+    """
+    Optional safety: only mark benign if path is within expected scope.
+    Adjust prefix to your project path if needed.
+    """
+    if not is_owned_site(url):
+        return 0
+    path = (urlparse(url).path or "/").lower()
+    # allow site root and your project paths
+    return 1 if (path == "/" or path.startswith("/risklens.github.io")) else 0
+
 def extract_features(url: str) -> dict:
     url = normalize_url(url)
     p = urlparse(url)
 
-    # numeric-only feature dict (safe for LightGBM)
     feats = {
         "valid_url": is_valid_url(url),
         "is_https": is_https(url),
@@ -274,8 +358,16 @@ def extract_features(url: str) -> dict:
         "digit_ratio": digit_ratio_in_host(url),
         "longest_digit_run": longest_digit_run(url),
 
-        # port can be None; safely coerce to 0
         "port": int(p.port or 0),
+
+        # Context / special-case signals
         "trusted_domain": is_trusted_domain(url),
+        "trusted_hosting": trusted_but_hosting(url),
+        "google_search_related": google_search_related(url),
+        "auth_like_flow": auth_like_flow(url),
+
+        # Optional: your own deployment
+        "owned_site": is_owned_site(url),
+        "owned_site_path_ok": owned_site_path_ok(url),
     }
     return feats
