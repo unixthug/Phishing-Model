@@ -72,20 +72,36 @@ def _host_path(url: str) -> Tuple[str, str]:
 def is_google_search_related(url: str) -> bool:
     """
     Exclude Google Search results pages and Google redirect endpoints used when clicking search results.
+    Covers:
+      - www.google.com, google.com, *.google.com
+      - country domains like www.google.ca, www.google.co.uk, etc.
     """
     host, path = _host_path(url)
     if not host:
         return False
-    if not (host == "www.google.com" or host.endswith(".google.com")):
+
+    # normalize trailing dot (rare but can happen)
+    host = host.rstrip(".")
+
+    # Host match:
+    #  - google.com / www.google.com / *.google.com
+    #  - www.google.<ccTLD> (e.g., www.google.ca, www.google.co.uk)
+    is_google_host = (
+        host == "google.com"
+        or host == "www.google.com"
+        or host.endswith(".google.com")
+        or host.startswith("www.google.")   # country domains
+    )
+    if not is_google_host:
         return False
 
+    # Path match:
     return (
         path == "/search"
         or path.startswith("/search")
         or path == "/url"
         or path == "/imgres"
     )
-
 
 def is_discord_invite(url: str) -> bool:
     """
@@ -239,3 +255,4 @@ def predict_with_bundle(
         verdict = "legitimate"
 
     return verdict, prob, threshold
+
