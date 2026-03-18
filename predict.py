@@ -26,7 +26,7 @@ LOCAL_MODEL = MODELS_DIR / os.getenv("LOCAL_MODEL_NAME", "phishing_model.pkl")
 LOCAL_COLS_PKL = MODELS_DIR / os.getenv("LOCAL_COLS_PKL_NAME", "feature_columns.pkl")
 
 # Thresholding
-DEFAULT_THRESHOLD = float(os.getenv("PHISH_THRESHOLD", "0.80"))
+DEFAULT_THRESHOLD = float(os.getenv("PHISH_THRESHOLD", "0.73"))
 
 # ✅ Policy toggles (env)
 # Comma-separated list of hostnames you own and never want flagged
