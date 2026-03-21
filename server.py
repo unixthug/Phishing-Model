@@ -128,7 +128,7 @@ def score():
 
 @app.route("/")
 def home():
-    return jsonify({"status": "RiskLens API running", "version": "0.4.0"})
+    return jsonify({"status": "RiskLens API running", "version": "0.4.2"})
 
 
 @app.route("/health", methods=["GET"])
