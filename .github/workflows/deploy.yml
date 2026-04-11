@@ -37,21 +37,16 @@ jobs:
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker image
-        # TODO: build the image and tag it with the full Artifact Registry path.
-        # Hint: tag format is REGION-docker.pkg.dev/PROJECT_ID/REPO/IMAGE:TAG
-        # Use ${{ github.sha }} as the tag so deploys are traceable to commits.
         run: |
-          # your docker build command here
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
-      - name: Push image
-        # TODO: docker push the image you just built (same tag)
+      - name: Push image to Artifact Registry
         run: |
-          # your docker push command here
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
-          # TODO: image — reference the same tag you built and pushed above
-          image:
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
