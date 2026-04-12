@@ -68,9 +68,12 @@ jobs:
       id-token: write
       contents: read
     steps:
+
       - name: Checkout repo
         uses: actions/checkout@v4
       - name: Install dependencies
         run: pip install dotenv requests
       - name: Test endpoint
         run: python test_score.py
+        env: 
+          API_URL: ${{ secrets.API_URL }}
