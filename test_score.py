@@ -12,7 +12,7 @@ def check_health(url):
             response = requests.post(f"{api_url}/score", json={"url": url})
             if response.status_code == 200:
                 print(f"RiskLens is up and running!")
-                pass
+                return
             else:
                 print(f"RiskLens is down. Status code: {response.status_code}")
         except requests.exceptions.RequestException as e:
