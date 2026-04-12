@@ -62,6 +62,7 @@ jobs:
           image: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
       - run: echo "Done."
   test:
+    needs: deploy
     runs-on: ubuntu-latest
     permissions:
       id-token: write
