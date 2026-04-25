@@ -6,6 +6,7 @@ pandas
 numpy
 joblib
 requests
+tldextract
 
 scikit-learn==1.7.2
 lightgbm
