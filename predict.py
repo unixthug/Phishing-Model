@@ -9,6 +9,15 @@ from typing import Any, Dict, List, Tuple
 from urllib.parse import urlparse
 import json
 from openai import OpenAI
+import joblib
+import numpy as np
+import pandas as pd
+import socket
+import ssl
+import time
+from datetime import timezone
+from Feature_Extract import extract_features
+
 
 def load_openai_api_key() -> str | None:
     key = os.getenv("OPENAI_API_KEY")
@@ -37,15 +46,6 @@ def get_openai_client() -> OpenAI | None:
 
     client = OpenAI(api_key=api_key)
     return client
-    
-import joblib
-import numpy as np
-import pandas as pd
-import socket
-import ssl
-import time
-from datetime import timezone
-from Feature_Extract import extract_features
 
 
 # =========================================================
@@ -66,7 +66,7 @@ TRUSTED_DOMAINS = {
     d.strip().lower()
     for d in os.getenv(
         "TRUSTED_DOMAINS",
-        "apple.com,bbc.com,cisa.gov,cloudflare.com,facebook.com,ftc.gov,github.com,instagram.com,irs.gov,linkedin.com,live.com,microsoft.com,microsoftonline.com,mit.edu,mozilla.org,nytimes.com,openai.com,paypal.com,stanford.edu,wikipedia.org"
+        "apple.com,bbc.com,cisa.gov,cloudflare.com,facebook.com,ftc.gov,github.com,instagram.com,irs.gov,linkedin.com,live.com,microsoft.com,microsoftonline.com,mit.edu,mozilla.org,nytimes.com,openai.com,paypal.com,stanford.edu,wikipedia.org,x.com"
     ).split(",")
     if d.strip()
 }
@@ -509,7 +509,9 @@ def build_human_signals(
     ]
     found_keywords = [kw for kw in suspicious_keywords if kw in normalized_url.lower()]
 
-    if not is_trusted_host(normalized_url):
+    trusted = is_trusted_host(normalized_url) or is_trusted_canonical_host(normalized_url)
+
+    if not trusted:
         signals.append("The domain is not recognized as one of the trusted domains.")
 
     if found_keywords:
@@ -836,7 +838,7 @@ def predict_url(url: str) -> Dict[str, Any]:
             classification=verdict,
             prediction_score=prob,
             top_signals=signals,
-            trusted_domain_match=is_trusted_host(normalized),
+            trusted_domain_match=is_trusted_host(normalized) or is_trusted_canonical_host(normalized),
             ssl_status=ssl_status,
             decision_source=decision_source,
         )
@@ -885,112 +887,9 @@ def predict_url(url: str) -> Dict[str, Any]:
 # =========================================================
 if __name__ == "__main__":
     test_urls = [
-    # Clearly legitimate
-    "https://www.google.com",
-    "https://github.com",
-    "https://docs.github.com/en",
-    "https://www.microsoft.com/en-us/security",
-    "https://support.apple.com",
-    "https://www.cloudflare.com",
-    "https://www.mozilla.org/en-US/firefox/new/",
-    "https://www.wikipedia.org",
-    "https://www.nytimes.com",
-    "https://www.bbc.com/news",
-    "https://www.cisa.gov",
-    "https://www.ftc.gov",
-    "https://www.irs.gov",
-    "https://www.stanford.edu",
-    "https://www.mit.edu",
-
-    # Legitimate but auth/account-looking
-    "https://accounts.google.com",
-    "https://login.microsoftonline.com",
-    "https://github.com/login",
-    "https://appleid.apple.com",
-    "https://www.paypal.com/signin",
-    "https://www.amazon.com/ap/signin",
-    "https://www.dropbox.com/login",
-    "https://www.linkedin.com/login",
-    "https://www.facebook.com/login",
-    "https://www.instagram.com/accounts/login/",
-
-    # Suspicious-looking synthetic phishing-style URLs
-    "http://paypal-login-secure.ru/verify/account",
-    "http://appleid-confirm-login.com/security/update",
-    "http://microsoft-verify-account.net/login",
-    "http://amazon-billing-update.info/confirm/payment",
-    "http://netflix-account-locked.com/login/verify",
-    "http://chase-secure-verification.com/account/login",
-    "http://bankofamerica-alerts-login.net/verify",
-    "http://coinbase-wallet-verify.org/secure",
-    "http://docusign-review-document-login.com/verify",
-    "http://office365-password-reset-support.com/login",
-
-    # Typosquatting / brand impersonation
-    "https://g00gle.com",
-    "https://paypaI.com",  # capital i instead of lowercase L visually
-    "https://micros0ft.com",
-    "https://faceboook.com",
-    "https://amaz0n-login.com",
-    "https://netfIix.com",
-    "https://github-security-alert.com",
-    "https://apple-support-billing.com",
-    "https://steamcommunnity.com",
-    "https://disc0rd.com",
-
-    # URL shorteners / redirects
-    "https://bit.ly/3example",
-    "https://tinyurl.com/login-update",
-    "https://t.co/security-alert",
-    "https://goo.gl/verify-account",
-    "https://ow.ly/account-check",
-    "https://is.gd/password-reset",
-    "https://cutt.ly/paypal-verify",
-    "https://rebrand.ly/secure-login",
-
-    # IP-address hosts
-    "http://192.168.1.1/login",
-    "http://10.0.0.1/admin",
-    "http://172.16.0.10/verify",
-    "http://185.199.108.153/login",
-    "http://8.8.8.8/account/update",
-    "https://1.1.1.1",
-
-    # Long / encoded / noisy URLs
-    "http://example.com/login?session=abc123&redirect=http%3A%2F%2Fpaypal.com%2Fsignin",
-    "http://secure-login.example.com/account/verify/update/password/reset",
-    "http://example.com/%2F%2Fpaypal.com%2Fsignin",
-    "http://example.com/login.php?email=user@example.com&token=1234567890abcdef",
-    "http://account-update.example.net/verify?next=https%3A%2F%2Fbank.com",
-    "http://xn--pple-43d.com/login",
-    "http://xn--googl-fsa.com/security-check",
-
-    # Hosted-content platforms, mixed risk
-    "https://sites.google.com/view/account-security-check",
-    "https://docs.google.com/forms/d/e/1FAIpQLSc-example/viewform",
-    "https://github.io/login-verify",
-    "https://raw.githubusercontent.com/user/repo/main/login.html",
-    "https://storage.googleapis.com/example-bucket/index.html",
-    "https://s3.amazonaws.com/example-bucket/login.html",
-    "https://pastebin.com/raw/example",
-    "https://medium.com/@user/security-awareness",
-
-    # Discord / social invite cases
-    "https://discord.gg/example",
-    "https://discord.com/invite/example",
-    "https://www.linkedin.com/in/example",
-    "https://twitter.com/example",
-    "https://x.com/example",
-    "https://facebook.com/security",
-
-    # Edge cases
-    "google.com",
-    "github.com/login",
-    "paypal.com.signin.verify-account.example.com",
-    "https://example.com",
-    "http://localhost:3000",
-    "not a url",
-    "",
+    "https://ecourses.pvamu.edu/",
+    "https://x.com/home",
+    "https://chatgpt.com","https://www.canva.com"
     ]
 
 
