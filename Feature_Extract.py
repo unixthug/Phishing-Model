@@ -6,6 +6,8 @@ import ipaddress
 from pathlib import Path
 import tldextract
 
+
+
 SUSPICIOUS_WORDS = {
     "login", "signin", "verify", "account", "update",
     "password", "billing", "invoice", "secure"
@@ -34,14 +36,48 @@ AUTH_FLOW_TERMS = {
     "openid", "oidc", "callback", "returnurl", "continue"
 }
 
+REDIRECT_HINTS = {
+    "redirect", "redirect_uri", "redirect_url", "return", "returnto",
+    "returnurl", "next", "target", "dest", "destination", "continue",
+    "url", "redir", "r", "u", "goto"
+}
+
+SUSPICIOUS_FILE_EXTENSIONS = {
+    ".php", ".asp", ".aspx", ".jsp", ".js", ".exe", ".scr", ".zip",
+    ".rar", ".7z", ".iso", ".img", ".jar", ".bat", ".cmd", ".ps1", ".hta"
+}
+
+BRAND_NAMES = {
+    "google", "facebook", "amazon", "apple", "microsoft",
+    "paypal", "netflix", "instagram", "docusign", "dropbox",
+    "bankofamerica", "chase", "outlook", "office365"
+}
 BASE_DIR = Path(__file__).resolve().parent
 DOMAIN_COUNT_PATH = BASE_DIR / "domain_counts.json"
+DOMAIN_COUNTS = {}
+_DOMAIN_COUNTS_MTIME = None
 
-try:
-    with open(DOMAIN_COUNT_PATH, "r", encoding="utf-8") as f:
-        DOMAIN_COUNTS = json.load(f)
-except Exception:
-    DOMAIN_COUNTS = {}
+
+def load_domain_counts(force: bool = False) -> dict:
+    global DOMAIN_COUNTS, _DOMAIN_COUNTS_MTIME
+
+    try:
+        current_mtime = DOMAIN_COUNT_PATH.stat().st_mtime
+    except OSError:
+        DOMAIN_COUNTS = {}
+        _DOMAIN_COUNTS_MTIME = None
+        return DOMAIN_COUNTS
+
+    if force or _DOMAIN_COUNTS_MTIME != current_mtime:
+        try:
+            with open(DOMAIN_COUNT_PATH, "r", encoding="utf-8") as f:
+                DOMAIN_COUNTS = json.load(f)
+            _DOMAIN_COUNTS_MTIME = current_mtime
+        except Exception:
+            DOMAIN_COUNTS = {}
+            _DOMAIN_COUNTS_MTIME = None
+
+    return DOMAIN_COUNTS
 
 #makes url normalization and parsing easier, also handles missing scheme cases
 def normalize_url(url: str) -> str:
@@ -74,9 +110,17 @@ def get_domain_frequency(hostname: str) -> float:
         return 0.0
 
     ext = tldextract.extract(hostname)
-    root_domain = ext.registered_domain  # e.g. google.com
+    root_domain = ext.top_domain_under_public_suffix  # e.g. google.com
 
-    return math.log1p(DOMAIN_COUNTS.get(root_domain, 1))
+    domain_counts = load_domain_counts()
+    return math.log1p(domain_counts.get(root_domain, 1))
+
+
+def safe_has_port(parsed) -> int:
+    try:
+        return 1 if parsed.port is not None else 0
+    except ValueError:
+        return 0
 
 def is_trusted_domain(hostname: str) -> int:
     return 1 if any(
@@ -112,6 +156,86 @@ def has_auth_flow_terms(parsed) -> int:
         
     return 0
 
+
+def get_subdomains(hostname: str) -> list[str]:
+    parts = hostname.split(".")
+    if len(parts) <= 2:
+        return []
+    return parts[:-2]
+
+
+def count_brand_mentions(text: str) -> int:
+    lowered = (text or "").lower()
+    return sum(lowered.count(brand) for brand in BRAND_NAMES)
+
+
+def has_redirect_param(parsed) -> int:
+    try:
+        query = parse_qs(parsed.query)
+    except Exception:
+        return 0
+    return 1 if any(key.lower() in REDIRECT_HINTS for key in query.keys()) else 0
+
+
+def count_redirect_params(parsed) -> int:
+    try:
+        query = parse_qs(parsed.query)
+    except Exception:
+        return 0
+    return sum(1 for key in query.keys() if key.lower() in REDIRECT_HINTS)
+
+
+def has_embedded_http(text: str) -> int:
+    lowered = (text or "").lower()
+    return 1 if "http://" in lowered or "https://" in lowered else 0
+
+
+def get_path_extension(parsed) -> str:
+    path = (parsed.path or "").lower()
+    if "." not in path.rsplit("/", 1)[-1]:
+        return ""
+    return "." + path.rsplit(".", 1)[-1]
+
+
+def has_suspicious_file_extension(parsed) -> int:
+    return 1 if get_path_extension(parsed) in SUSPICIOUS_FILE_EXTENSIONS else 0
+
+
+def hostname_digit_ratio(hostname: str) -> float:
+    return sum(ch.isdigit() for ch in hostname) / max(1, len(hostname))
+
+
+def hostname_alpha_ratio(hostname: str) -> float:
+    return sum(ch.isalpha() for ch in hostname) / max(1, len(hostname))
+
+
+def longest_hostname_token(hostname: str) -> int:
+    tokens = [token for token in re.split(r"[^a-zA-Z0-9]+", hostname) if token]
+    if not tokens:
+        return 0
+    return max(len(token) for token in tokens)
+
+
+def count_path_tokens(parsed) -> int:
+    blob = (parsed.path or "") + "&" + (parsed.query or "")
+    return len([token for token in re.split(r"[^a-zA-Z0-9]+", blob) if token])
+
+
+def count_host_brand_mismatch(hostname: str) -> int:
+    if not hostname:
+        return 0
+
+    subdomains = ".".join(get_subdomains(hostname))
+    if not subdomains:
+        return 0
+
+    ext = tldextract.extract(hostname)
+    root_domain = ext.top_domain_under_public_suffix or hostname
+    return sum(
+        1 for brand in BRAND_NAMES
+        if brand in subdomains and brand not in root_domain
+    )
+
 # main extractor function
 def extract_features(url:str) -> dict:
     url = normalize_url(url)
@@ -144,6 +268,7 @@ def extract_features(url:str) -> dict:
     features["percent_encoding_count"] = url.count("%")
     features["query_to_url_ratio"] = len(parsed.query) / max(1, len(url))
     features["path_to_url_ratio"] = len(parsed.path) / max(1, len(url))
+    features["has_embedded_http"] = has_embedded_http(url)
     # -------------------------
     # Hostname/domain features
     # -------------------------
@@ -152,7 +277,10 @@ def extract_features(url:str) -> dict:
     features["num_subdomains"] = max(0, len(parts) - 2)
     features["has_www"] = 1 if hostname.startswith("www.") else 0
     features["num_digits_in_host"] = sum(c.isdigit() for c in hostname)
+    features["hostname_digit_ratio"] = hostname_digit_ratio(hostname)
+    features["hostname_alpha_ratio"] = hostname_alpha_ratio(hostname)
     features["hostname_has_hyphen"] = 1 if "-" in hostname else 0
+    features["longest_hostname_token"] = longest_hostname_token(hostname)
     features["has_ip_address"] = has_ip_address(hostname)
     features["is_trusted_domain"] = is_trusted_domain(hostname)
     features["is_shortener"] = is_shortener(hostname)
@@ -160,6 +288,7 @@ def extract_features(url:str) -> dict:
     features["has_punycode"] = 1 if "xn--" in hostname else 0
     features["domain_freq"] = get_domain_frequency(hostname)
     features["suspicious_subdomain"] = has_suspicious_subdomain(hostname)
+    features["brand_mismatch_count"] = count_host_brand_mismatch(hostname)
     # -------------------------
     # Path/query features
     # -------------------------
@@ -167,7 +296,11 @@ def extract_features(url:str) -> dict:
     features["query_length"] = len(parsed.query)
     features["has_double_slash_in_path"] = 1 if "//" in parsed.path else 0
     features["num_query_params"] = len(parse_qs(parsed.query))
-    features["has_port"] = 1 if parsed.port is not None else 0
+    features["has_port"] = safe_has_port(parsed)
+    features["has_redirect_param"] = has_redirect_param(parsed)
+    features["redirect_param_count"] = count_redirect_params(parsed)
+    features["path_token_count"] = count_path_tokens(parsed)
+    features["has_suspicious_file_extension"] = has_suspicious_file_extension(parsed)
     features["shortener_with_path"] = 1 if (
     features["is_shortener"] == 1 and features["path_length"] > 0
     ) else 0
@@ -187,13 +320,10 @@ def extract_features(url:str) -> dict:
         path_query.count(word) for word in SUSPICIOUS_WORDS
     )
 
-    BRAND_NAMES = {
-    "google", "facebook", "amazon", "apple", "microsoft",
-    "paypal", "netflix", "instagram"
-}
-
     features["brand_in_url"] = 1 if any(b in url_lower for b in BRAND_NAMES) else 0
     features["brand_in_host"] = 1 if any(b in hostname for b in BRAND_NAMES) else 0
+    features["brand_count_url"] = count_brand_mentions(url_lower)
+    features["brand_count_host"] = count_brand_mentions(hostname)
     # -------------------------
     # Auth / false-positive reduction
     # -------------------------
