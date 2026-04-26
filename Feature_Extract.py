@@ -59,6 +59,12 @@ DEFAULT_URL_SCHEME = os.getenv("DEFAULT_URL_SCHEME", "https").strip().lower()
 if DEFAULT_URL_SCHEME not in {"http", "https"}:
     DEFAULT_URL_SCHEME = "https"
 
+# Load once at import — file doesn't change at runtime
+try:
+    with open(DOMAIN_COUNT_PATH, "r", encoding="utf-8") as f:
+        DOMAIN_COUNTS = json.load(f)
+except Exception:
+    DOMAIN_COUNTS = {}
 
 def load_domain_counts(force: bool = False) -> dict:
     global DOMAIN_COUNTS, _DOMAIN_COUNTS_MTIME
@@ -107,12 +113,9 @@ def has_suspicious_subdomain(hostname: str) -> int:
                 return 1
     return 0
 
-def get_domain_frequency(hostname: str) -> float:
-    if not hostname:
+def get_domain_frequency(root_domain: str) -> float:
+    if not root_domain:
         return 0.0
-
-    ext = tldextract.extract(hostname)
-    root_domain = ext.top_domain_under_public_suffix  # e.g. google.com
 
     domain_counts = load_domain_counts()
     return math.log1p(domain_counts.get(root_domain, 1))
@@ -223,7 +226,7 @@ def count_path_tokens(parsed) -> int:
     return len([token for token in re.split(r"[^a-zA-Z0-9]+", blob) if token])
 
 
-def count_host_brand_mismatch(hostname: str) -> int:
+def count_host_brand_mismatch(hostname: str, root_domain: str) -> int:
     if not hostname:
         return 0
 
@@ -231,8 +234,6 @@ def count_host_brand_mismatch(hostname: str) -> int:
     if not subdomains:
         return 0
 
-    ext = tldextract.extract(hostname)
-    root_domain = ext.top_domain_under_public_suffix or hostname
     return sum(
         1 for brand in BRAND_NAMES
         if brand in subdomains and brand not in root_domain
@@ -244,7 +245,8 @@ def extract_features(url:str) -> dict:
     parsed = urlparse(url)
     hostname = get_hostname(parsed)
     url_lower = url.lower()
-
+    ext = tldextract.extract(hostname)
+    root_domain = ext.top_domain_under_public_suffix or hostname
     features = {}
     # -------------------------
     # Basic URL features
@@ -288,9 +290,9 @@ def extract_features(url:str) -> dict:
     features["is_shortener"] = is_shortener(hostname)
     features["suspicious_tld"] = has_suspicious_tld(hostname)
     features["has_punycode"] = 1 if "xn--" in hostname else 0
-    features["domain_freq"] = get_domain_frequency(hostname)
+    features["domain_freq"] = get_domain_frequency(root_domain)
     features["suspicious_subdomain"] = has_suspicious_subdomain(hostname)
-    features["brand_mismatch_count"] = count_host_brand_mismatch(hostname)
+    features["brand_mismatch_count"] = count_host_brand_mismatch(hostname, root_domain)
     # -------------------------
     # Path/query features
     # -------------------------

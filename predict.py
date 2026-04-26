@@ -1,9 +1,8 @@
 # predict.py
 import os
 import pickle
-import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from urllib.parse import urlparse
@@ -11,16 +10,14 @@ import json
 from openai import OpenAI
 import joblib
 import numpy as np
-import pandas as pd
 import socket
 import ssl
 import time
 import urllib.error
 import urllib.request
-from datetime import timezone
-from Feature_Extract import extract_features
 import tldextract
-
+from Feature_Extract import extract_features
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 def load_openai_api_key() -> str | None:
     key = os.getenv("OPENAI_API_KEY")
@@ -374,6 +371,27 @@ CERT_CACHE_TTL = 60 * 60  # 1 hour
 WHOIS_CACHE = {}
 WHOIS_CACHE_TTL = 24 * 60 * 60  # 24 hours
 
+# server side prediction caching
+PREDICT_CACHE = {}
+PREDICT_CACHE_TTL = 5 * 60  # 5 minutes
+PREDICT_CACHE_MAX_SIZE = 1000
+
+def _predict_cache_get(url: str) -> dict | None:
+    entry = PREDICT_CACHE.get(url)
+    if not entry:
+        return None
+    if time.time() - entry["time"] > PREDICT_CACHE_TTL:
+        del PREDICT_CACHE[url]
+        return None
+    return entry["data"]
+
+
+def _predict_cache_put(url: str, data: dict) -> None:
+    # Bound cache size — drop oldest entry if full
+    if len(PREDICT_CACHE) >= PREDICT_CACHE_MAX_SIZE:
+        oldest_key = min(PREDICT_CACHE, key=lambda k: PREDICT_CACHE[k]["time"])
+        del PREDICT_CACHE[oldest_key]
+    PREDICT_CACHE[url] = {"time": time.time(), "data": data}
 
 def _registered_domain(host: str) -> str:
     ext = tldextract.extract(host)
@@ -434,7 +452,6 @@ def _check_certificate(url: str, timeout: float = 2.0) -> dict:
             "error": "connection_failed"
         }
 
-
 def get_cert_result(url: str) -> dict:
     host = _get_hostname(url)
     if not host:
@@ -456,6 +473,28 @@ def get_cert_result(url: str) -> dict:
 
     return result
 
+# Final update to add threading to the cert checker call
+_cert_executor = ThreadPoolExecutor(max_workers=4)
+
+def get_cert_result_async(url: str, timeout: float = 2.0) -> dict:
+    try:
+        future = _cert_executor.submit(get_cert_result, url)
+        return future.result(timeout=timeout)
+    except TimeoutError:
+        return {"checked": False, "error": "timeout"}
+    except Exception:
+        return {"checked": False, "error": "thread_error"}
+
+def get_whois_result_async(url: str, timeout: float = 1.5) -> dict:
+    if not ENABLE_WHOIS_LOOKUP:
+        return {"checked": False, "error": "disabled"}
+    try:
+        future = _cert_executor.submit(get_whois_result, url)
+        return future.result(timeout=timeout)
+    except TimeoutError:
+        return {"checked": False, "error": "timeout"}
+    except Exception:
+        return {"checked": False, "error": "thread_error"}
 
 # =========================================================
 # WHOIS / RDAP REPUTATION SIGNALS (OPTIONAL)
@@ -624,29 +663,15 @@ def load_bundle() -> Dict[str, Any]:
 # =========================================================
 # FEATURE BUILDING
 # =========================================================
-def _make_X(url: str, train_cols: List[str]) -> pd.DataFrame:
+def _make_X(url: str, train_cols: List[str]) -> np.ndarray:
     feats = extract_features(url)
-
     if not isinstance(feats, dict):
         raise ValueError("extract_features(url) must return a dict")
-
-    X = pd.DataFrame([feats])
-
-    if X.empty:
-        raise ValueError("Feature extraction returned no features")
-
-    X = X.replace([np.inf, -np.inf], np.nan)
-
-    for col in X.columns:
-        X[col] = pd.to_numeric(X[col], errors="coerce")
-
-    X = X.fillna(0)
-    X = X.reindex(columns=train_cols, fill_value=0)
-
-    if X.empty or X.shape[1] == 0:
-        raise ValueError("Feature matrix is empty after column alignment")
-
-    return X
+    row = np.array(
+        [[float(feats.get(col, 0) or 0) for col in train_cols]],
+        dtype=np.float64,
+    )
+    return np.nan_to_num(row, nan=0.0, posinf=0.0, neginf=0.0)
 
 
 # =========================================================
@@ -667,29 +692,6 @@ def init_db() -> None:
         source TEXT
     )
     """)
-
-    conn.commit()
-    conn.close()
-
-
-def log_prediction(url: str, score: float, classification: str, source: str = "extension") -> None:
-    init_db()
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    INSERT INTO predictions
-    (url, prediction_score, classification, timestamp, model_version, source)
-    VALUES (?, ?, ?, ?, ?, ?)
-    """, (
-        url,
-        float(score),
-        classification,
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "lightgbm_v1",
-        source,
-    ))
 
     conn.commit()
     conn.close()
@@ -1010,59 +1012,70 @@ def predict_with_bundle(
         prob = max(prob, phishing_threshold)
         decision_source = "model+reputation_rule"
 
-    whois_info = get_whois_result(normalized_url)
-    if whois_info.get("checked") and verdict == "legitimate":
+    need_whois = ENABLE_WHOIS_LOOKUP and verdict == "legitimate"
+    need_cert = (
+        normalized_url.startswith("https://")
+        and (verdict != "phishing" or prob > 0.4)
+    )
+
+    cert_info = None
+    whois_info = None
+
+    # Run both in parallel if both needed; otherwise run directly
+    if need_whois and need_cert:
+        cert_future = _cert_executor.submit(get_cert_result, normalized_url)
+        whois_future = _cert_executor.submit(get_whois_result, normalized_url)
+        try:
+            whois_info = whois_future.result(timeout=1.5)
+        except (TimeoutError, Exception):
+            whois_info = {"checked": False, "error": "timeout"}
+        try:
+            cert_info = cert_future.result(timeout=2.0)
+        except (TimeoutError, Exception):
+            cert_info = {"checked": False, "error": "timeout"}
+    elif need_whois:
+        whois_info = get_whois_result_async(normalized_url)
+    elif need_cert:
+        cert_info = get_cert_result_async(normalized_url)
+
+    # Apply WHOIS verdict mutations
+    if whois_info and whois_info.get("checked") and verdict == "legitimate":
         domain_age_days = whois_info.get("domain_age_days")
-        newly_registered = domain_age_days is not None and domain_age_days < WHOIS_NEW_DOMAIN_DAYS
+        newly_registered = (
+            domain_age_days is not None and domain_age_days < WHOIS_NEW_DOMAIN_DAYS
+        )
         hidden_identity = whois_info.get("hidden_identity") is True
         if newly_registered or hidden_identity:
             verdict = "suspicious"
             decision_source = "model+whois_rule"
 
-    # =========================================================
-    # CERT CHECK (ONLY WHEN NEEDED)
-    # =========================================================
-    should_check_cert = (
-    normalized_url.startswith("https://") and
-    (
-        verdict != "phishing" or
-        prob > 0.4
-    )
-    )
-
-    if should_check_cert:
-        cert_info = get_cert_result(normalized_url)
-
-        if cert_info.get("checked"):
-            # Invalid cert → phishing
-            if cert_info.get("cert_valid") is False:
-                if prob >= phishing_threshold or lookalike:
-                    verdict = "phishing"
-                else:
-                    verdict = "suspicious"
-                decision_source = "model+cert_rule"
-
-            # Expired cert → suspicious (only downgrade safe sites)
-            elif cert_info.get("cert_expired") is True and verdict == "legitimate":
+    # Apply cert verdict mutations
+    if cert_info and cert_info.get("checked"):
+        if cert_info.get("cert_valid") is False:
+            if prob >= phishing_threshold or lookalike:
+                verdict = "phishing"
+            else:
                 verdict = "suspicious"
-                decision_source = "model+cert_rule"
-
-            elif (
-                cert_info.get("cert_valid") is True
-                and verdict == "phishing"
-                and trusted_canonical
-                and not abused_hosting
-                and prob < 0.995
-            ):
-                verdict = "suspicious"
-                decision_source = "model+cert_softener"
-            elif (
-                verdict == "phishing"
-                and prob < 0.92
-                and trusted_canonical
-            ):
-                verdict = "suspicious"
-                decision_source = "model+trusted_softener"
+            decision_source = "model+cert_rule"
+        elif cert_info.get("cert_expired") is True and verdict == "legitimate":
+            verdict = "suspicious"
+            decision_source = "model+cert_rule"
+        elif (
+            cert_info.get("cert_valid") is True
+            and verdict == "phishing"
+            and trusted_canonical
+            and not abused_hosting
+            and prob < 0.995
+        ):
+            verdict = "suspicious"
+            decision_source = "model+cert_softener"
+        elif (
+            verdict == "phishing"
+            and prob < 0.92
+            and trusted_canonical
+        ):
+            verdict = "suspicious"
+            decision_source = "model+trusted_softener"
 
     return verdict, prob, model_prob, phishing_threshold, suspicious_threshold, decision_source, cert_info, whois_info
 
@@ -1070,6 +1083,12 @@ def predict_with_bundle(
 def predict_url(url: str) -> Dict[str, Any]:
     try:
         normalized = normalize_url(url)
+
+        # Cache check — return early if we have a cached result
+        cached = _predict_cache_get(normalized)
+        if cached is not None:
+            return cached
+
         train_cols = load_train_cols()
         bundle = load_bundle()
 
@@ -1107,13 +1126,7 @@ def predict_url(url: str) -> Dict[str, Any]:
             decision_source=decision_source,
         )
 
-        # Optional logging
-        try:
-            log_prediction(normalized, prob, verdict, source="extension")
-        except Exception:
-            pass
-
-        return {
+        result = {
             "success": True,
             "url": normalized,
             "classification": verdict,
@@ -1121,14 +1134,14 @@ def predict_url(url: str) -> Dict[str, Any]:
             "model_prediction_score": round(model_prob, 6),
             "phishing_threshold": phishing_threshold,
             "suspicious_threshold": suspicious_threshold,
-            "should_warn": verdict in {"suspicious", "phishing"},
-            "should_block": verdict == "phishing",
             "decision_source": decision_source,
             "certificate_check": cert_info,
             "whois_check": whois_info,
             "signals": signals,
             "ai_feedback": ai_feedback,
         }
+        _predict_cache_put(normalized, result)
+        return result
 
     except Exception as e:
         return {
@@ -1139,8 +1152,6 @@ def predict_url(url: str) -> Dict[str, Any]:
             "model_prediction_score": None,
             "phishing_threshold": PHISHING_THRESHOLD,
             "suspicious_threshold": SUSPICIOUS_THRESHOLD,
-            "should_warn": False,
-            "should_block": False,
             "decision_source": "error",
             "certificate_check": None,
             "whois_check": None,
@@ -1149,6 +1160,15 @@ def predict_url(url: str) -> Dict[str, Any]:
             "error": str(e),
         }
 
+# Warm caches at import so first request doesn't pay the cost
+try:
+    load_train_cols()
+    load_bundle()
+    tldextract.extract("example.com")  # forces suffix list load
+    from Feature_Extract import load_domain_counts
+    load_domain_counts(force=True)
+except Exception:
+    pass  # don't crash module import if any of these fail
 
 # =========================================================
 # OPTIONAL QUICK TEST

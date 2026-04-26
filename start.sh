@@ -12,4 +12,4 @@ echo "Downloading feature columns..."
 curl -L -f --retry 3 --retry-delay 2 ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$FEATURE_COLS_URL" -o /app/feature_names.pkl
 test -s /app/lbgm_model.pkl
 test -s /app/feature_names.pkl
-exec gunicorn server:app --bind 0.0.0.0:"${PORT:-8000}" --workers 2 --timeout 120
+exec gunicorn server:app --bind 0.0.0.0:"${PORT:-8000}" --workers 2 --threads 8 --worker-class gthread --timeout 30 --preload
