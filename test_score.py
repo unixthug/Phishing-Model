@@ -4,25 +4,32 @@ import os
 import sys
 import time
 
-def check_health(url):
+def check_health():
     load_dotenv()
     api_url = os.getenv("API_URL")
+    api_key = os.getenv("API_KEY")
+
+    if not api_url:
+        raise Exception("API_URL is not set")
+
     for i in range(5):
         try:
-            response = requests.post(f"{api_url}/score", json={"url": url})
+            headers = {"x-api-key": api_key} if api_key else {}
+            response = requests.get(f"{api_url}/health", headers=headers, timeout=10)
             if response.status_code == 200:
-                print(f"RiskLens is up and running!")
+                print("RiskLens is up and running!")
                 return
-            else:
-                print(f"RiskLens is down. Status code: {response.status_code}")
+            print(f"RiskLens returned {response.status_code}")
         except requests.exceptions.RequestException as e:
             print(f"Error checking RiskLens: {e}")
-            time.sleep(10)  # Wait for 5 seconds before retrying
+        time.sleep(10)
+
     raise Exception("RiskLens is not responding after 5 attempts.")
+
+
 try:
-    check_health("https://www.google.com")
+    check_health()
 except Exception as e:
     print(e)
     sys.exit(1)
-
 sys.exit(0)
