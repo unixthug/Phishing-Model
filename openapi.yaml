@@ -67,4 +67,4 @@ x-google-management:
         metric: score-requests
         unit: 1/min/{project}
         values:
-          STANDARD: 60
+          STANDARD: 300

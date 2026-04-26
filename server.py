@@ -1,18 +1,27 @@
 import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from predict import predict_url
 
 app = Flask(__name__)
 CORS(app)
 
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=[],
+    storage_uri="memory://",
+)
 
 def convert_to_risk(probability: float) -> float:
     return round(float(probability) * 100, 2)
 
 
 @app.route("/score", methods=["POST"])
+@limiter.limit("60 per minute")
 def score():
     data = request.get_json(silent=True)
     if not data or "url" not in data:
