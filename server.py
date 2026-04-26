@@ -35,7 +35,7 @@ def score():
         "score": convert_to_risk(prob) if prob is not None else None,
         "threshold": result["phishing_threshold"],
         "suspicious_threshold": result["suspicious_threshold"],
-        "why_flagged": result["signals"],
+        "why_flagged": result["signals"] if result["should_warn"] is True else [],
         "ai_feedback": result["ai_feedback"],
         "decision_source": result["decision_source"],
         "certificate_check": result["certificate_check"],
