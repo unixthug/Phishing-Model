@@ -1,12 +1,11 @@
 import json
 import math
+import os
 from urllib.parse import urlparse, parse_qs
 import re
 import ipaddress
 from pathlib import Path
 import tldextract
-
-
 
 SUSPICIOUS_WORDS = {
     "login", "signin", "verify", "account", "update",
@@ -43,7 +42,7 @@ REDIRECT_HINTS = {
 }
 
 SUSPICIOUS_FILE_EXTENSIONS = {
-    ".php", ".asp", ".aspx", ".jsp", ".js", ".exe", ".scr", ".zip",
+    ".php", ".asp", ".aspx", ".jsp", ".js", ".apk", ".exe", ".scr", ".zip",
     ".rar", ".7z", ".iso", ".img", ".jar", ".bat", ".cmd", ".ps1", ".hta"
 }
 
@@ -56,6 +55,9 @@ BASE_DIR = Path(__file__).resolve().parent
 DOMAIN_COUNT_PATH = BASE_DIR / "domain_counts.json"
 DOMAIN_COUNTS = {}
 _DOMAIN_COUNTS_MTIME = None
+DEFAULT_URL_SCHEME = os.getenv("DEFAULT_URL_SCHEME", "https").strip().lower()
+if DEFAULT_URL_SCHEME not in {"http", "https"}:
+    DEFAULT_URL_SCHEME = "https"
 
 
 def load_domain_counts(force: bool = False) -> dict:
@@ -85,7 +87,7 @@ def normalize_url(url: str) -> str:
     if not url:
         return ""
     if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", url):
-        url = "http://" + url
+        url = f"{DEFAULT_URL_SCHEME}://" + url
     return url
 
 def get_hostname(parsed) -> str:

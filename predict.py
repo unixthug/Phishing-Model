@@ -15,8 +15,11 @@ import pandas as pd
 import socket
 import ssl
 import time
+import urllib.error
+import urllib.request
 from datetime import timezone
 from Feature_Extract import extract_features
+import tldextract
 
 
 def load_openai_api_key() -> str | None:
@@ -61,12 +64,35 @@ THRESHOLD_PATH = BASE_DIR / "threshold.json"
 PHISHING_THRESHOLD = float(os.getenv("PHISH_THRESHOLD", "0.85"))
 SUSPICIOUS_THRESHOLD = float(os.getenv("SUSPICIOUS_THRESHOLD", "0.65"))
 ENABLE_AI_FEEDBACK = os.getenv("ENABLE_AI_FEEDBACK", "false").strip().lower() == "true"
+DEFAULT_URL_SCHEME = os.getenv("DEFAULT_URL_SCHEME", "https").strip().lower()
+if DEFAULT_URL_SCHEME not in {"http", "https"}:
+    DEFAULT_URL_SCHEME = "https"
+ENABLE_WHOIS_LOOKUP = os.getenv("ENABLE_WHOIS_LOOKUP", "true").strip().lower() == "true"
+WHOIS_NEW_DOMAIN_DAYS = int(os.getenv("WHOIS_NEW_DOMAIN_DAYS", "30"))
 
 TRUSTED_DOMAINS = {
     d.strip().lower()
     for d in os.getenv(
         "TRUSTED_DOMAINS",
         "apple.com,bbc.com,cisa.gov,cloudflare.com,facebook.com,ftc.gov,github.com,instagram.com,irs.gov,linkedin.com,live.com,microsoft.com,microsoftonline.com,mit.edu,mozilla.org,nytimes.com,openai.com,paypal.com,stanford.edu,wikipedia.org,x.com"
+    ).split(",")
+    if d.strip()
+}
+
+REPUTATION_BLOCKED_DOMAINS = {
+    d.strip().lower()
+    for d in os.getenv(
+        "REPUTATION_BLOCKED_DOMAINS",
+        "booksareheaven.com",
+    ).split(",")
+    if d.strip()
+}
+
+REPUTATION_SUSPICIOUS_DOMAINS = {
+    d.strip().lower()
+    for d in os.getenv(
+        "REPUTATION_SUSPICIOUS_DOMAINS",
+        "proxy.valhallastream.com,proxy.vallhallastream.com",
     ).split(",")
     if d.strip()
 }
@@ -82,6 +108,34 @@ URL_SHORTENER_DOMAINS = {
     "rebrand.ly",
     "t.co",
     "tinyurl.com",
+}
+
+EXECUTABLE_FILE_EXTENSIONS = {
+    ".apk",
+    ".bat",
+    ".cmd",
+    ".exe",
+    ".hta",
+    ".img",
+    ".iso",
+    ".jar",
+    ".msi",
+    ".ps1",
+    ".scr",
+}
+
+EXECUTABLE_HOST_MARKERS = {
+    "apk",
+    "download",
+    "exe",
+    "installer",
+    "setup",
+}
+
+SUSPICIOUS_HOST_MARKERS = {
+    "cdn-proxy",
+    "proxy",
+    "webproxy",
 }
 
 ABUSED_HOSTING_DOMAINS = {
@@ -127,7 +181,7 @@ def _ensure_scheme(url: str) -> str:
     if not u:
         return ""
     if "://" not in u:
-        u = "http://" + u
+        u = f"{DEFAULT_URL_SCHEME}://" + u
     return u
 
 
@@ -136,7 +190,7 @@ def normalize_url(url: str) -> str:
     if not u:
         raise ValueError("URL is empty")
     if "://" not in u:
-        u = "http://" + u
+        u = f"{DEFAULT_URL_SCHEME}://" + u
     parsed = urlparse(u)
     host = (parsed.hostname or "").lower().rstrip(".")
 
@@ -241,6 +295,16 @@ def is_safe_ip_host(url: str) -> bool:
     return host in SAFE_IP_HOSTS
 
 
+def is_reputation_blocked_host(url: str) -> bool:
+    host, _ = _host_path(url)
+    return bool(host and _is_host_in(host, REPUTATION_BLOCKED_DOMAINS))
+
+
+def is_reputation_suspicious_host(url: str) -> bool:
+    host, _ = _host_path(url)
+    return bool(host and _is_host_in(host, REPUTATION_SUSPICIOUS_DOMAINS))
+
+
 def is_url_shortener_host(url: str) -> bool:
     host, _ = _host_path(url)
     return bool(host and _is_host_in(host, URL_SHORTENER_DOMAINS))
@@ -256,6 +320,28 @@ def is_abused_hosting_host(url: str) -> bool:
             return True
 
     return False
+
+
+def has_executable_file_marker(url: str) -> bool:
+    host, path = _host_path(url)
+    if not host:
+        return False
+
+    last_path_segment = path.rsplit("/", 1)[-1]
+    if any(last_path_segment.endswith(ext) for ext in EXECUTABLE_FILE_EXTENSIONS):
+        return True
+
+    host_labels = [label for label in host.split(".") if label]
+    return any(label in EXECUTABLE_HOST_MARKERS for label in host_labels)
+
+
+def has_suspicious_host_marker(url: str) -> bool:
+    host, _ = _host_path(url)
+    if not host:
+        return False
+
+    host_labels = [label for label in host.split(".") if label]
+    return any(label in SUSPICIOUS_HOST_MARKERS for label in host_labels)
 
 
 def has_brand_lookalike_marker(url: str) -> bool:
@@ -285,6 +371,13 @@ def is_discord_invite(url: str) -> bool:
 # =========================================================
 CERT_CACHE = {}
 CERT_CACHE_TTL = 60 * 60  # 1 hour
+WHOIS_CACHE = {}
+WHOIS_CACHE_TTL = 24 * 60 * 60  # 24 hours
+
+
+def _registered_domain(host: str) -> str:
+    ext = tldextract.extract(host)
+    return ext.top_domain_under_public_suffix or host
 
 
 def _get_hostname(url: str) -> str | None:
@@ -361,6 +454,116 @@ def get_cert_result(url: str) -> dict:
         "data": result
     }
 
+    return result
+
+
+# =========================================================
+# WHOIS / RDAP REPUTATION SIGNALS (OPTIONAL)
+# =========================================================
+def _parse_rdap_event_date(data: dict, actions: set[str]) -> datetime | None:
+    for event in data.get("events", []) or []:
+        action = str(event.get("eventAction", "")).lower()
+        if action not in actions:
+            continue
+
+        raw_date = event.get("eventDate")
+        if not raw_date:
+            continue
+
+        try:
+            return datetime.fromisoformat(str(raw_date).replace("Z", "+00:00"))
+        except ValueError:
+            continue
+
+    return None
+
+
+def _rdap_text_blob(data: dict) -> str:
+    pieces: list[str] = []
+    for key in ("name", "handle", "ldhName"):
+        value = data.get(key)
+        if value:
+            pieces.append(str(value))
+
+    for entity in data.get("entities", []) or []:
+        for key in ("handle", "roles"):
+            value = entity.get(key)
+            if value:
+                pieces.append(json.dumps(value))
+        vcard = entity.get("vcardArray")
+        if vcard:
+            pieces.append(json.dumps(vcard))
+
+    for notice in (data.get("notices", []) or []) + (data.get("remarks", []) or []):
+        pieces.append(json.dumps(notice))
+
+    return " ".join(pieces).lower()
+
+
+def get_whois_result(url: str, timeout: float = 3.0) -> dict:
+    if not ENABLE_WHOIS_LOOKUP:
+        return {"checked": False, "error": "disabled"}
+
+    host = _get_hostname(url)
+    if not host:
+        return {"checked": False, "error": "invalid_host"}
+
+    domain = _registered_domain(host)
+    now = time.time()
+
+    if domain in WHOIS_CACHE:
+        cached = WHOIS_CACHE[domain]
+        if now - cached["time"] < WHOIS_CACHE_TTL:
+            return cached["data"]
+
+    rdap_url = f"https://rdap.org/domain/{domain}"
+    try:
+        request = urllib.request.Request(
+            rdap_url,
+            headers={"User-Agent": "phishing-url-detector/1.0"},
+        )
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.loads(response.read().decode("utf-8", errors="replace"))
+
+        created = _parse_rdap_event_date(data, {"registration", "domain registration"})
+        updated = _parse_rdap_event_date(data, {"last changed", "last update of rdap database"})
+        text_blob = _rdap_text_blob(data)
+
+        privacy_markers = [
+            "privacy",
+            "private",
+            "redacted",
+            "withheld",
+            "proxy",
+            "whoisguard",
+            "contact privacy",
+        ]
+        hidden_identity = any(marker in text_blob for marker in privacy_markers)
+
+        domain_age_days = None
+        if created:
+            domain_age_days = (datetime.now(timezone.utc) - created.astimezone(timezone.utc)).days
+
+        result = {
+            "checked": True,
+            "domain": domain,
+            "registrar": data.get("registrarName") or data.get("registrar"),
+            "created": created.isoformat() if created else None,
+            "updated": updated.isoformat() if updated else None,
+            "domain_age_days": domain_age_days,
+            "hidden_identity": hidden_identity,
+            "error": None,
+        }
+
+    except urllib.error.HTTPError as exc:
+        result = {"checked": True, "domain": domain, "error": f"http_{exc.code}"}
+    except Exception:
+        result = {"checked": True, "domain": domain, "error": "lookup_failed"}
+
+    WHOIS_CACHE[domain] = {
+        "time": now,
+        "data": result,
+    }
     return result
 # =========================================================
 # ARTIFACT LOADING
@@ -496,6 +699,7 @@ def build_human_signals(
     verdict: str,
     prob: float,
     cert_info: Dict[str, Any] | None,
+    whois_info: Dict[str, Any] | None,
     decision_source: str,
 ) -> List[str]:
     signals: List[str] = []
@@ -527,6 +731,18 @@ def build_human_signals(
     if is_abused_hosting_host(normalized_url):
         signals.append("This URL uses a public hosting platform where the path should be reviewed carefully.")
 
+    if has_executable_file_marker(normalized_url):
+        signals.append("The URL contains an executable or app-download marker.")
+
+    if has_suspicious_host_marker(normalized_url):
+        signals.append("The hostname contains a proxy/content-routing marker.")
+
+    if is_reputation_blocked_host(normalized_url):
+        signals.append("This domain is on the local reputation block list.")
+
+    if is_reputation_suspicious_host(normalized_url):
+        signals.append("This domain is on the local reputation watch list.")
+
     if has_brand_lookalike_marker(normalized_url):
         signals.append("The domain resembles a well-known brand but is not the official domain.")
 
@@ -544,6 +760,13 @@ def build_human_signals(
         elif cert_info.get("error") == "connection_failed":
             signals.append("The certificate check could not fully verify the secure connection.")
 
+    if whois_info and whois_info.get("checked"):
+        domain_age_days = whois_info.get("domain_age_days")
+        if domain_age_days is not None and domain_age_days < WHOIS_NEW_DOMAIN_DAYS:
+            signals.append("The domain appears to be newly registered.")
+        if whois_info.get("hidden_identity") is True:
+            signals.append("The domain registration uses privacy or redaction details.")
+
     if decision_source == "rule":
         signals.append("This result came from a rule-based safety check.")
     elif decision_source == "model+cert_rule":
@@ -556,6 +779,14 @@ def build_human_signals(
         signals.append("A brand-lookalike rule increased the severity of this result.")
     elif decision_source == "model+shortener_rule":
         signals.append("A link-shortener rule increased the severity of this result.")
+    elif decision_source == "model+executable_rule":
+        signals.append("An executable-download rule increased the severity of this result.")
+    elif decision_source == "model+host_marker_rule":
+        signals.append("A suspicious hostname marker increased the severity of this result.")
+    elif decision_source == "model+reputation_rule":
+        signals.append("A domain reputation rule increased the severity of this result.")
+    elif decision_source == "model+whois_rule":
+        signals.append("A domain registration rule increased the severity of this result.")
     elif decision_source == "model":
         if prob >= 0.90:
             signals.append("The machine learning model detected strong phishing-related patterns.")
@@ -693,18 +924,18 @@ def predict_with_bundle(
     url: str,
     bundle: Dict[str, Any],
     train_cols: List[str],
-) -> Tuple[str, float, float, float, str, Dict[str, Any] | None]:
+) -> Tuple[str, float, float, float, float, str, Dict[str, Any] | None, Dict[str, Any] | None]:
     normalized_url = normalize_url(url)
 
     phishing_threshold = float(bundle.get("phishing_threshold", PHISHING_THRESHOLD))
     suspicious_threshold = float(bundle.get("suspicious_threshold", SUSPICIOUS_THRESHOLD))
 
     if not is_valid_public_url(normalized_url):
-        return "invalid_url", 0.0, phishing_threshold, suspicious_threshold, "rule", None
+        return "invalid_url", 0.0, 0.0, phishing_threshold, suspicious_threshold, "rule", None, None
 
     # Rule for Discord invites
     if is_discord_invite(normalized_url):
-        return DISCORD_INVITE_VERDICT, 0.99, phishing_threshold, suspicious_threshold, "rule", None
+        return DISCORD_INVITE_VERDICT, 0.99, 0.99, phishing_threshold, suspicious_threshold, "rule", None, None
 
     
     # ML prediction
@@ -715,6 +946,7 @@ def predict_with_bundle(
         prob = float(model.predict_proba(X)[0][1])
     else:
         prob = float(model.predict(X)[0])
+    model_prob = prob
 
     if prob >= phishing_threshold:
         verdict = "phishing"
@@ -725,12 +957,17 @@ def predict_with_bundle(
 
     decision_source = "model"
     cert_info = None
+    whois_info = None
     trusted = is_trusted_host(normalized_url)
     trusted_canonical = is_trusted_canonical_host(normalized_url)
     safe_ip = is_safe_ip_host(normalized_url)
     shortener = is_url_shortener_host(normalized_url)
     abused_hosting = is_abused_hosting_host(normalized_url)
     lookalike = has_brand_lookalike_marker(normalized_url)
+    reputation_blocked = is_reputation_blocked_host(normalized_url)
+    reputation_suspicious = is_reputation_suspicious_host(normalized_url)
+    executable_marker = has_executable_file_marker(normalized_url)
+    suspicious_host_marker = has_suspicious_host_marker(normalized_url)
 
     if lookalike and verdict == "legitimate":
         verdict = "suspicious"
@@ -744,6 +981,18 @@ def predict_with_bundle(
         verdict = "suspicious"
         decision_source = "model+shortener_rule"
 
+    if executable_marker and verdict == "legitimate":
+        verdict = "suspicious"
+        decision_source = "model+executable_rule"
+
+    if suspicious_host_marker and verdict == "legitimate":
+        verdict = "suspicious"
+        decision_source = "model+host_marker_rule"
+
+    if reputation_suspicious and verdict == "legitimate":
+        verdict = "suspicious"
+        decision_source = "model+reputation_rule"
+
     if trusted_canonical and not abused_hosting and not lookalike:
         if verdict in {"phishing", "suspicious"}:
             verdict = "legitimate"
@@ -755,6 +1004,20 @@ def predict_with_bundle(
         elif verdict == "suspicious" and prob < 0.80:
             verdict = "legitimate"
             decision_source = "model+trusted_softener"
+
+    if reputation_blocked:
+        verdict = "phishing"
+        prob = max(prob, phishing_threshold)
+        decision_source = "model+reputation_rule"
+
+    whois_info = get_whois_result(normalized_url)
+    if whois_info.get("checked") and verdict == "legitimate":
+        domain_age_days = whois_info.get("domain_age_days")
+        newly_registered = domain_age_days is not None and domain_age_days < WHOIS_NEW_DOMAIN_DAYS
+        hidden_identity = whois_info.get("hidden_identity") is True
+        if newly_registered or hidden_identity:
+            verdict = "suspicious"
+            decision_source = "model+whois_rule"
 
     # =========================================================
     # CERT CHECK (ONLY WHEN NEEDED)
@@ -801,7 +1064,7 @@ def predict_with_bundle(
                 verdict = "suspicious"
                 decision_source = "model+trusted_softener"
 
-    return verdict, prob, phishing_threshold, suspicious_threshold, decision_source, cert_info
+    return verdict, prob, model_prob, phishing_threshold, suspicious_threshold, decision_source, cert_info, whois_info
 
 
 def predict_url(url: str) -> Dict[str, Any]:
@@ -810,7 +1073,7 @@ def predict_url(url: str) -> Dict[str, Any]:
         train_cols = load_train_cols()
         bundle = load_bundle()
 
-        verdict, prob, phishing_threshold, suspicious_threshold, decision_source, cert_info = predict_with_bundle(
+        verdict, prob, model_prob, phishing_threshold, suspicious_threshold, decision_source, cert_info, whois_info = predict_with_bundle(
             url=normalized,
             bundle=bundle,
             train_cols=train_cols,
@@ -820,6 +1083,7 @@ def predict_url(url: str) -> Dict[str, Any]:
             verdict=verdict,
             prob=prob,
             cert_info=cert_info,
+            whois_info=whois_info,
             decision_source=decision_source,
         )  
         ssl_status = None
@@ -854,12 +1118,14 @@ def predict_url(url: str) -> Dict[str, Any]:
             "url": normalized,
             "classification": verdict,
             "prediction_score": round(prob, 6),
+            "model_prediction_score": round(model_prob, 6),
             "phishing_threshold": phishing_threshold,
             "suspicious_threshold": suspicious_threshold,
             "should_warn": verdict in {"suspicious", "phishing"},
             "should_block": verdict == "phishing",
             "decision_source": decision_source,
             "certificate_check": cert_info,
+            "whois_check": whois_info,
             "signals": signals,
             "ai_feedback": ai_feedback,
         }
@@ -870,12 +1136,14 @@ def predict_url(url: str) -> Dict[str, Any]:
             "url": url,
             "classification": "error",
             "prediction_score": None,
+            "model_prediction_score": None,
             "phishing_threshold": PHISHING_THRESHOLD,
             "suspicious_threshold": SUSPICIOUS_THRESHOLD,
             "should_warn": False,
             "should_block": False,
             "decision_source": "error",
             "certificate_check": None,
+            "whois_check": None,
             "signals": [],
             "ai_feedback": "The system could not analyze this URL.",
             "error": str(e),
@@ -889,7 +1157,7 @@ if __name__ == "__main__":
     test_urls = [
     "https://ecourses.pvamu.edu/",
     "https://x.com/home",
-    "https://chatgpt.com","https://www.canva.com"
+    "https://chatgpt.com","https://www.canva.com", "https://booksareheaven.com/", "proxy.valhallastream.com", "Robloxloaderexe.net"
     ]
 
 
